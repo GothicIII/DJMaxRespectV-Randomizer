@@ -46,7 +46,17 @@
   Run the game and enter Freestyle-Mode. Make sure 'All Tracks' tab is selected.
   
   Run this program and click on 'DLC' to select your bought packs.
-  Select the desired filter options. 
+  Select the desired filter options. GUI should be self-explanatory.
+  Settings will be saved as a .ini including filter options and window position!.
   
   Either click on 'Go!' or press F2 on your keyboard. If the game is running it should select the randomly selected song
   with the correct button and difficulty mode!
+  
+ ## SCREENSHOTS:
+ 
+ ![grafik](https://user-images.githubusercontent.com/10393365/172835316-a351f3e2-7885-4b57-be03-64cfb5946546.png)
+![grafik](https://user-images.githubusercontent.com/10393365/172835336-07045804-4594-4339-a4f2-211109b2bb59.png)
+![grafik](https://user-images.githubusercontent.com/10393365/172835383-b957747f-e469-4062-89ad-c4207f946e33.png)
+
+
+  
