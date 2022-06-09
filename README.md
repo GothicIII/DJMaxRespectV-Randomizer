@@ -32,8 +32,8 @@
 
   ### Method A (For Developers):
     Download a copy from this repository and extract it.
-    Download AHK v2 beta from autohotkey.com and put it into the same folder where the extracted repository is.
-    Drag the .ahk onto the executable.
+    Download AHK v2 beta from autohotkey.com and put it into the same folder
+    where the extracted repository is. Drag the .ahk onto the executable.
   
   ### Method B (Self compiled .exe):
     Follow METHOD A and use the ahk2exe inside the UX folder to compile a .exe yourself.
