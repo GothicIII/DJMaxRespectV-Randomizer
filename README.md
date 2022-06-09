@@ -44,6 +44,7 @@
   
 ## USAGE:
   Run the game and enter Freestyle-Mode. Make sure 'All Tracks' tab is selected.
+  
   Run this program and click on 'DLC' to select your bought packs.
   Select the desired filter options. 
   
