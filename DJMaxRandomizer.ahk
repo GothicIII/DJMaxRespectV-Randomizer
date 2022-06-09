@@ -163,7 +163,7 @@ class Generate_Chart_Data
 			this.order:=0
 		else
 			this.order	:= ++alphaarr[ord(strupper(this.name))-64]
-	;debugfunc(name, this.order)
+	;debugfunc(name, this.order, songgroup)
 	this.fourk	:= {}
 	this.fivek	:= {}
 	this.sixk	:= {}
@@ -209,10 +209,22 @@ ArrToStr(arr,min:=1,max:=0)
 }
 
 ; Prints order of internal db songs
-DebugFunc(name, order)
+DebugFunc(name, order, songpack)
 {
 	; set search string
-	debugstring:="A"
+	debugstring:=""
+	static pre:=0
+	if pre=0
+	{
+		try WinActivate("ahk_exe DJMax Respect V.exe")
+		send (chr(ord(strlower(debugstring))-1))
+		sleep 25
+		send strlower(debugstring)
+		sleep 25
+		send "{up}"
+		sleep 25
+		pre:=1
+	}
 	If debugstring!="" and substr(strupper(name),1,strlen(debugstring))=debugstring
 		{
 		try {
@@ -220,7 +232,7 @@ DebugFunc(name, order)
 		Send "{Down}"
 		Sleep 25
 		}
-		MsgBox(name "," order)
+		MsgBox(name "," order "," songpack)
 		}
 }
 
@@ -290,21 +302,28 @@ Return arr
 }
 
 ; Extends default sorting function since DJMax has a weird song sorting scheme 
+	; Problematic songs:
+	; Urban Night 2x
+	; A lie <-> A lie ~deep inside mix~
+	; I've got a feeling <-> I want you or IF
+	; We're gonna die <-> welcome to the space
+	; U-nivius
 FunctionSort(first,last,*)
 {
-	;chr(32) space, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
+	;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
 	first := strupper(first), last:= strupper(last)
 	loop parse first
 	{
-		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))
-		if charl=59 or (charf=39 and charl=32) or (charf=45 and charl>82)
+		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1)) 
+		if (charl=59 and charf!=59) or (charf=45 and charl<=78) or (charf=39 and charl=32) or (charf=39 and charl=76) or (charf=39 and charl=68) or (charf=50 and charl=126)
 			Return 1
-		if charf=59 or (charl=39 and charl=32) or (charl=45 and charf<=82)
+		if (charf=59 and charl!=59) or (charl=45 and charf<=78) or (charl=39 and charf=32) or (charl=39 and charf=76) or (charl=39 and charf=68) or (charf=126 and charl=50)
 			Return -1
-		if charf!=charl
+		if charf!=charl or (charf=59 and charl=59)
 			Return 0
 	}
 }
+
 
 ; If Songtable is empty it will generate it
 GenerateSongTable(songsdbmem)
