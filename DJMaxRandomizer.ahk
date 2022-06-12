@@ -364,10 +364,10 @@ ModifySettings(*)
 		else
 		{   
 			;Check if all 
-			if dlc.value=0 or A_Index=dlcpacks.length
+			if dlc.value=0
 			{
-			songpacks[songpacks.length].value:=0
-			songpacks[songpacks.length].enabled:=0
+				songpacks[songpacks.length].value:=0
+				songpacks[songpacks.length].enabled:=0
 			}
 			else 
 			{
