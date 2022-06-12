@@ -11,7 +11,7 @@
 ; Variable initialization
 #NoTrayIcon
 global refresh:=0
-Version:="1.0.220609"
+Version:="1.0.220612"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[]
 
 ; GUI Initializiation
