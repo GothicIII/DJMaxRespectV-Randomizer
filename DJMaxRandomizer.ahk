@@ -6,8 +6,6 @@
 ;Numpad1::GetSongData()
 ;Numpad2::Reload
 
-
-
 ; Variable initialization
 #NoTrayIcon
 global refresh:=0
