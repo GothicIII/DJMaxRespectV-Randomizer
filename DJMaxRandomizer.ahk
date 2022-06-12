@@ -41,8 +41,6 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Groove Coaster"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Girls' Frontline"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Nexon"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Muse Dash"))
-;disable Muse dash dlc, since data is not available for me
-dlcpacks[dlcpacks.length].Enabled:=0
 DJMaxGuiSubMenu.Add("Text", "x10 y+20 w450 left","Select the DLCs you have. Settings will be saved.`nThis will regenerate the random table so not owned songs`nwon't be rolled.")
 DJMaxGuiSubMenu.Add("Text", "y+-10 right x370", "v" . Version).SetFont("s8")
 
