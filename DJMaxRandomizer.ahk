@@ -9,7 +9,7 @@
 ; Variable initialization
 #NoTrayIcon
 global refresh:=0
-Version:="1.0.220612"
+Version:="1.1.220613Beta"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[]
 
 ; GUI Initializiation
@@ -204,32 +204,27 @@ ArrToStr(arr,min:=1,max:=0)
 	return str
 }
 
-; Prints order of internal db songs
-DebugFunc(name, order, songpack)
+;Safetycheck for Filter settings (kmode, diffmode)
+CheckValidFilter()
 {
-	; set search string
-	debugstring:=""
-	static pre:=0
-	if pre=0
+	checkk:=0, checkd:=0
+	while A_Index<=4
 	{
-		try WinActivate("ahk_exe DJMax Respect V.exe")
-		send (chr(ord(strlower(debugstring))-1))
-		sleep 25
-		send strlower(debugstring)
-		sleep 25
-		send "{up}"
-		sleep 25
-		pre:=1
+	if kmode[A_Index].Value=0 or kmode[A_Index].Enabled=0
+		checkk++
+	if diffmode[A_Index].Value=0 or diffmode[A_Index].Enabled=0
+		checkd++
 	}
-	If debugstring!="" and substr(strupper(name),1,strlen(debugstring))=debugstring
+	if checkk=4 or checkd=4
+	{
+		while A_Index<=4
 		{
-		try {
-		WinActivate("ahk_exe DJMax Respect V.exe")
-		Send "{Down}"
-		Sleep 25
+			kmode[A_Index].Enabled:=1
+			diffmode[A_Index].Enabled:=1
 		}
-		MsgBox(name "," order "," songpack)
-		}
+		statusbar.SetText("Please adjust your settings. That combination leads nowhere @_@")	
+		Return 1
+	}
 }
 
 ;Helper function to get value in dlcpack Array from songgroup String
@@ -297,6 +292,34 @@ while A_index<=count
 Return arr
 }
 
+; Prints order of internal db songs
+DebugFunc(name, order, songpack)
+{
+	; set search string
+	debugstring:=""
+	static pre:=0
+	if pre=0
+	{
+		try WinActivate("ahk_exe DJMax Respect V.exe")
+		send (chr(ord(strlower(debugstring))-1))
+		sleep 25
+		send strlower(debugstring)
+		sleep 25
+		send "{up}"
+		sleep 25
+		pre:=1
+	}
+	If debugstring!="" and substr(strupper(name),1,strlen(debugstring))=debugstring
+		{
+		try {
+		WinActivate("ahk_exe DJMax Respect V.exe")
+		Send "{Down}"
+		Sleep 25
+		}
+		MsgBox(name "," order "," songpack)
+		}
+}
+
 ; Extends default sorting function since DJMax has a weird song sorting scheme 
 	; Problematic songs:
 	; Urban Night 2x
@@ -320,7 +343,6 @@ FunctionSort(first,last,*)
 	}
 }
 
-
 ; If Songtable is empty it will generate it
 GenerateSongTable(songsdbmem)
 {
@@ -341,39 +363,25 @@ GenerateSongTable(songsdbmem)
 	Return
 }
 
-
 ;Called when Edit menu is closed. Enables/Disables checkboxes
 ModifySettings(*)
 {
 	for dlc in dlcpacks
-		if A_Index<=maindlccount
+	{
+		element := (A_Index<=maindlccount ? A_Index+3 : songpacks.length)
+		if dlc.value=0
 		{
-			if dlc.value=0
-			{
-				songpacks[A_Index+3].value:=0
-				songpacks[A_Index+3].enabled:=0
-			}
-			else
-			{
-				songpacks[A_Index+3].value:=1
-				songpacks[A_Index+3].enabled:=1
-			}
+			songpacks[element].value:=0
+			songpacks[element].enabled:=0
 		}
 		else
-		{   
-			;Check if all 
-			if dlc.value=0
-			{
-				songpacks[songpacks.length].value:=0
-				songpacks[songpacks.length].enabled:=0
-			}
-			else 
-			{
-				songpacks[songpacks.length].value:=1
-				songpacks[songpacks.length].enabled:=1
+		{
+			songpacks[element].value:=1
+			songpacks[element].enabled:=1
+			if element=songpacks.length
 				break
-			}
 		}
+	}
 	global refresh:=1
 }
 
@@ -401,6 +409,54 @@ SaveAndExit(*)
 	ExitApp
 }
 
+;Sets difficulty boundaries and disables checkboxes according to slider value
+;Min/MaxArray are fixed values for min/max difficulty on each mode: 
+;e.g. 9 is the highest minimum '*'-count for 4k&5k NM
+;e.g. 7 is the lowest maximum '*'-count for 5k&6k&7k MX
+SetMinMaxBoundaries()
+{	static minarray := [[9,9,11,12],[12,13,14,14],[15,15,15,15],[15,15,15,15]]
+	static maxarray := [[1,1,1,1],[4,4,4,3],[6,7,7,7],[10,10,12,10]]
+	minimum:=mindiff.value, maximum:=maxdiff.value
+	indexkdisable:=fillarr(4,0)
+	safetykmode:=4
+	for indexd in diffmode
+	{
+		B_Index:=A_Index
+		indexddisable:=0
+			for indexk in kmode
+			{
+				if indexk.value=1 and (minimum>minarray[B_Index][A_Index] or maximum<maxarray[B_Index][A_Index])
+				{
+					indexkdisable[A_Index]++
+					indexddisable++
+				}
+				else
+				{
+					if indexd.value=0
+					{
+						safetykmode--
+						indexkdisable[A_Index]++
+					}
+					if indexk.value=0
+						indexddisable++
+				}
+			}
+		if indexddisable=4
+		{
+			indexd.enabled:=0
+			safetykmode--
+		}
+		else
+			indexd.enabled:=1
+	}
+	while A_Index<=kmode.length
+		if indexkdisable[A_Index]=4 and safetykmode>0
+			kmode[A_Index].enabled:=0
+		else
+			kmode[A_Index].enabled:=1
+	Return 
+}
+
 ToggleAllSongPacks(*)
 {
 	for packs in songpacks
@@ -414,6 +470,7 @@ ToggleAllSongPacks(*)
 
 Update(slider)
 {
+statusbar.SetText("")	
 	if mindiff.value>maxdiff.value and slider=1
 		mindiff.value:=maxdiff.value
 	else if maxdiff.value<mindiff.value and slider=0
@@ -431,11 +488,15 @@ Update(slider)
 		else 
 			stars[A_Index].SetFont("s20 CFFFFFF W700")
 	}
+SetMinMaxBoundaries()
+CheckValidFilter()
 }
 
 ; Determines the song to play and updates the GUI when found
 RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 {
+	if CheckValidFilter()
+		Return
 	static songsdbmem:=[]
 	GenerateSongTable(&songsdbmem)
 	loop
@@ -451,7 +512,7 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 		while kmode=""
 		{
 			randomnum := Random(1,4)
-			if kmodes[randomnum].value=1
+			if kmodes[randomnum].value=1 and kmodes[randomnum].enabled=1
 				Switch randomnum
 				{
 					Case 1:
@@ -476,89 +537,22 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 			maximum:=maxdiff.value
 			minimum:=mindiff.value
 			randomnum := Random(1,4)
-			if songdiff[randomnum].value=1
+			if songdiff[randomnum].value=1 and songdiff[randomnum].enabled=1
 				Switch randomnum
 				{
 					Case 1:
 						songdif:="NM"
 						color:="00FF00"
-						Switch kmodenice
-						{
-							Case "4K":
-								if minimum>9
-									minimum:=9
-							Case "5K":
-								if minimum>9
-									minimum:=9
-							Case "6K":
-								if minimum>11
-									minimum:=11
-							Case "8K":
-								if minimum>12
-									minimum:=12
-						}
+
 					Case 2:
 						songdif:="HD"
 						color:="00FFFF"
-						Switch kmodenice
-						{
-							Case "4K":
-								if minimum>12
-									minimum:=12
-								if maximum<4
-									maximum:=4
-							Case "5K":
-								if minimum>13
-									minimum:=13
-								if maximum<4
-									maximum:=4
-							Case "6K":
-								if minimum>14
-									minimum:=14
-								if maximum<4
-									maximum:=4
-							Case "8K":
-								if minimum>14
-									minimum:=14
-								if maximum<3
-									maximum:=3
-						}
 					Case 3:
 						songdif:="MX"
 						color:="FF8E55"
-						Switch kmodenice
-						{
-							Case "4K":
-								if maximum<6
-									maximum:=6
-							Case "5K":
-								if maximum<7
-									maximum:=7
-							Case "6K":
-								if maximum<7
-									maximum:=7
-							Case "8K":
-								if maximum<7
-									maximum:=7
-						}
 					Case 4:
 						songdif:="SC"
 						color:="FF00FF"
-						Switch kmodenice
-						{
-							Case "4K":
-								if maximum<10
-									maximum:=10
-							Case "5K":
-								if maximum<10
-									maximum:=10
-							Case "6K":
-								if maximum<12
-									maximum:=12
-							Case "8K":
-								if maximum<10
-									maximum:=10
-						}
 				}
 		}
 	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and songsdbmem[songnumber].sg=songpack and songsdbmem[songnumber].order>-1
@@ -598,6 +592,7 @@ SelectSong(song, kmode, songdif)
 		statusbar.SetText("DJMaxV window not found! Can't send you straight to the song :(")	
 		Return
 	}
+
 	;while PixelGetColor(921,175)!="0xFFFFFF"
 	;	{
 	;	Send "{RShift Down}"
