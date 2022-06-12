@@ -23,10 +23,6 @@
   I can not guarantee that this randomizer works with every bought DLC combination.
   In the PS4-Era some songs were only unlocked (like the extended mix versions) if a few specific DLCs are bought.
   This could mess up the randomizer table making code changes a necessity (aka releasing a new version).
-  
-  I don't own MUSE DASH DLC so data for it is missing. If you own it already, the random tables will be
-  messed up for you meaning you won't be taken to the right song (it will be either further down or up).
-  I'll get the DLC as soon it gets on discount. Then I'll be able to patch this.
 
 ## COMPILING & RUNNING:
 
