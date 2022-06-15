@@ -225,7 +225,6 @@ CheckFilter()
 	if enabledsongpacks!=ArrToStr(songpacks)
 	{	
 		enabledsongpacks:=ArrToStr(songpacks)
-		MsgBox("Creating db...")
 		GenerateSongTable()
 	}
 	SetMinMaxBoundaries()
