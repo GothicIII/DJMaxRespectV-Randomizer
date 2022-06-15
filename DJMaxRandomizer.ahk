@@ -59,6 +59,8 @@ songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "T1"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T2"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T3"))
 songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "CO"))
+for each in songpacks
+	each.OnEvent('Click', (*)=>Checkfilter())
 DJMaxGui.Add("Button", "y+ wp hp", "DLC").OnEvent('Click', (*)=>DjMaxGuiSubMenu.Show((DJMaxGui.GetClientPos(&x,&y,&w)) "x" x+w . "y" . y ))
 (songpacktoggle := DJMaxGui.Add("Checkbox", "y+ wp Checked", "All")).OnEvent('Click', ToggleAllSongPacks)
 DJMaxGui.Add("Text", "x1 yp+80 w100 right","K-Modes:")
@@ -219,9 +221,11 @@ CheckFilter()
 {
 	global songpacks
 	static enabledsongpacks:=0
+	statusbar.SetText("")
 	if enabledsongpacks!=ArrToStr(songpacks)
 	{	
 		enabledsongpacks:=ArrToStr(songpacks)
+		MsgBox("Creating db...")
 		GenerateSongTable()
 	}
 	SetMinMaxBoundaries()
@@ -399,6 +403,7 @@ ModifySettings(*)
 				break
 		}
 	}
+	Checkfilter()
 }
 
 SaveAndExit(*)
@@ -476,6 +481,7 @@ ToggleAllSongPacks(*)
 				packs.value:=1
 			else 
 				packs.value:=0
+	Checkfilter()
 }
 
 UpdateSlider(slider:=0)
