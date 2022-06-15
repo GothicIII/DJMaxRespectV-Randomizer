@@ -8,9 +8,8 @@
 
 ; Variable initialization
 #NoTrayIcon
-global refresh:=0
-Version:="1.1.220613Beta"
-songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[]
+Version:="1.1.220615"
+songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
 
 ; GUI Initializiation
 ; EDIT menu Gui
@@ -73,12 +72,12 @@ diffmode.push(DJMaxGui.Add("Checkbox", "x+ wp", "HD"))
 diffmode.push(DJMaxGui.Add("Checkbox", "x+ wp", "MX"))
 diffmode.push(DJMaxGui.Add("Checkbox", "x+ wp", "SC"))
 DJMaxGui.Add("Text", "x1 y+20 w100 right","Min:")
-(mindiff := DJMaxGui.Add("Slider", "yp x+ w335 Range1-15 ToolTip", 1)).OnEvent('Change', (*)=>Update(1))
+(mindiff := DJMaxGui.Add("Slider", "yp x+ w335 Range1-15 ToolTip", 1)).OnEvent('Change', (*)=>UpdateSlider(1))
 stars.push(DJMaxGui.Add("Text", "xp+3 y+-4 w22 h30 center","★   "))
 while A_Index<15
 	stars.push(DJMaxGui.Add("Text", "x+ wp hp center","★   "))
 DJMaxGui.Add("Text", "x1 y+ w100 right","Max:")
-(maxdiff := DJMaxGui.Add("Slider", "yp x+ w335 Left Range1-15 ToolTip section", 15)).OnEvent('Change', (*)=>Update(0))
+(maxdiff := DJMaxGui.Add("Slider", "yp x+ w335 Left Range1-15 ToolTip section", 15)).OnEvent('Change', (*)=>UpdateSlider())
 DJMaxGui.Add("Button", "x20 y+ Default w80 h50", "Go!").OnEvent('Click', (*)=>RollSong(songpacks, kmode, diffmode, mindiff, maxdiff))
 DJMaxGui.Add("Button", "x20 y+ Default w80 h50", "Save&&Exit").OnEvent('Click', SaveAndExit)
 DJMaxGui.Add("Text", "xs+7 ys+50 w60","Song: ")
@@ -132,62 +131,72 @@ catch
 		songpacks[songpacks.length].enabled:=0
 	loop parse settings[9]
 		dlcpacks[A_Index+maindlccount].value:=A_Loopfield
- 
+
  ; Draw GUI
-	Update(0)
+	UpdateSlider()
 	DJMaxGui.Show((winposx="null" ? "" : "x" . winposx . "y" winposy))
 	F2::RollSong(songpacks, kmode, diffmode, mindiff, maxdiff)
 
 ; Chart data definition in memory
 class Generate_Chart_Data
 {
-	__New(name, songgroup, fourkdata, fivekdata, sixkdata, eightkdata)
+	__New(name, songgroup, fourkdata, fivekdata, sixkdata, eightkdata, newdb:=0)
 	{
-	global refresh, debugstring
-	static alphaarr := fillarr(26,0)
-	if refresh=1
-	{
-		alphaarr := fillarr(26,0)
-		refresh:=0
-	}
-	esg:=EvaluateSongGroup(songgroup)
-	this.name 	:= name
-	if esg=0 or esg=2
-		this.order:=-1
-	else 
-		if ord(strupper(this.name))-64 < 1 
-			this.order:=0
-		else
-			this.order	:= ++alphaarr[ord(strupper(this.name))-64]
-	;debugfunc(name, this.order, songgroup)
-	this.fourk	:= {}
-	this.fivek	:= {}
-	this.sixk	:= {}
-	this.eightk	:= {}
-	
-	this.fourk.nm	:= fourkdata[1]
-	this.fourk.hd	:= fourkdata[2]
-	this.fourk.mx	:= fourkdata[3]
-	this.fourk.sc	:= fourkdata[4]
-	
-	this.fivek.nm	:= fivekdata[1]
-	this.fivek.hd	:= fivekdata[2]
-	this.fivek.mx	:= fivekdata[3]
-	this.fivek.sc	:= fivekdata[4]
-	
-	this.sixk.nm	:= sixkdata[1]
-	this.sixk.hd	:= sixkdata[2]
-	this.sixk.mx	:= sixkdata[3]
-	this.sixk.sc	:= sixkdata[4]
-	
-	this.eightk.nm	:= eightkdata[1]
-	this.eightk.hd	:= eightkdata[2]
-	this.eightk.mx	:= eightkdata[3]
-	this.eightk.sc	:= eightkdata[4]
-	if esg>1
-		this.sg := "CO"
-	else 
-		this.sg := songgroup
+		global debugstring, minarray, maxarray
+		static alphaarr := fillarr(26,0)
+		if newdb=1 
+		{
+			alphaarr := fillarr(26,0)
+			minarray:=fillarr(16,0)
+			maxarray:=fillarr(16,15)
+		}
+		esg:=EvaluateSongGroup(songgroup)
+		this.name 	:= name
+		;MsgBox(esg "`n" name)
+		if esg=0 or esg=2
+			this.order:=-1
+		else 
+			if ord(strupper(this.name))-64 < 1 
+				this.order:=0
+			else
+				this.order	:= ++alphaarr[ord(strupper(this.name))-64]
+		;debugfunc(name, this.order, songgroup)
+		this.fourk	:= {}
+		this.fivek	:= {}
+		this.sixk	:= {}
+		this.eightk	:= {}
+		
+		for f in ["nm","hd","mx","sc"]
+		{
+			this.fourk.%f% := fourkdata[A_Index]
+			this.fivek.%f% := fivekdata[A_Index]
+			this.sixk.%f% := sixkdata[A_Index]
+			this.eightk.%f% := eightkdata[A_Index]
+		}
+		if esg>1
+			this.sg := "CO"
+		else 
+			this.sg := songgroup
+		while A_Index<=4 and this.order>-1 and EvaluateSongGroup(songgroup,0)
+		{
+			if fourkdata[A_Index] > minarray[4 * A_Index - 3]
+				minarray[4*A_Index-3] := fourkdata[A_Index]
+			if fivekdata[A_Index] > minarray[4 * A_Index - 2]
+				minarray[4*A_Index-2] := fivekdata[A_Index]
+			if sixkdata[A_Index] > minarray[4 * A_Index - 1]
+				minarray[4*A_Index-1] := sixkdata[A_Index]
+			if eightkdata[A_Index] > minarray[4 * A_Index]
+				minarray[4*A_Index] := eightkdata[A_Index]
+			
+			if fourkdata[A_Index] < maxarray[4 * A_Index - 3] and fourkdata[A_Index]>0
+				maxarray[4*A_Index-3] := fourkdata[A_Index]
+			if fivekdata[A_Index] < maxarray[4 * A_Index - 2] and fivekdata[A_Index]>0
+				maxarray[4*A_Index-2] := fivekdata[A_Index]
+			if sixkdata[A_Index] < maxarray[4 * A_Index - 1] and sixkdata[A_Index]>0
+				maxarray[4*A_Index-1] := sixkdata[A_Index]
+			if eightkdata[A_Index] < maxarray[4 * A_Index] and eightkdata[A_Index]>0
+				maxarray[4*A_Index] := eightkdata[A_Index]
+		}
 	}
 } 
 
@@ -205,8 +214,17 @@ ArrToStr(arr,min:=1,max:=0)
 }
 
 ;Safetycheck for Filter settings (kmode, diffmode)
-CheckValidFilter()
+;Updates db in memory if different filtersettings are found.
+CheckFilter()
 {
+	global songpacks
+	static enabledsongpacks:=0
+	if enabledsongpacks!=ArrToStr(songpacks)
+	{	
+		enabledsongpacks:=ArrToStr(songpacks)
+		GenerateSongTable()
+	}
+	SetMinMaxBoundaries()
 	checkk:=0, checkd:=0
 	while A_Index<=4
 	{
@@ -227,60 +245,65 @@ CheckValidFilter()
 	}
 }
 
-;Helper function to get value in dlcpack Array from songgroup String
-EvaluateSongGroup(sg)
+;Helper function to get value in dlcpack/songpack Array from songgroup String
+EvaluateSongGroup(sg, dlc:=1)
 {
 	Switch sg
 		{
 			Case "RE":
-				Return 1
-			Case "P1":
-				Return 1
-			Case "P2":
-				Return 1
-			Case "P3":
 				val:=1
-			Case "TR":
+			Case "P1":
 				val:=2
-			Case "CL":
+			Case "P2":
 				val:=3
-			Case "BS":
+			Case "P3":
 				val:=4
-			Case "V1":
+			Case "TR":
 				val:=5
-			Case "V2":
+			Case "CL":
 				val:=6
-			Case "ES":
+			Case "BS":
 				val:=7
-			Case "T1":
+			Case "V1":
 				val:=8
-			Case "T2":
+			Case "V2":
 				val:=9
-			Case "T3":
+			Case "ES":
 				val:=10
-			Case "GG":
+			Case "T1":
 				val:=11
-			Case "CH":
+			Case "T2":
 				val:=12
-			Case "CY":
+			Case "T3":
 				val:=13
-			Case "DE":
+			Case "GG":
 				val:=14
-			Case "ET":
+			Case "CH":
 				val:=15
-			Case "GC":
+			Case "CY":
 				val:=16
-			Case "GF":
+			Case "DE":
 				val:=17
-			Case "NE":
+			Case "ET":
 				val:=18
-			Case "MD":
+			Case "GC":
 				val:=19
+			Case "GF":
+				val:=20
+			Case "NE":
+				val:=21
+			Case "MD":
+				val:=22
 			Default:
 				MsgBox("Invalid Songgroup! Data corrupted?")
 				ExitApp
 		}
-	Return dlcpacks[val].value + (val>10 ? 2 : 0)
+	if dlc=1 and val>3
+		Return dlcpacks[val-3].value + (val>13 ? 2 : 0)
+	if dlc=1
+		Return 1
+	else 
+		Return songpacks[(val>13 ? 14 : val)].value
 }
 
 ; Helper Function to initialize arrays
@@ -344,23 +367,17 @@ FunctionSort(first,last,*)
 }
 
 ; If Songtable is empty it will generate it
-GenerateSongTable(songsdbmem)
+GenerateSongTable()
 {
+	global songsdbmem
 	static SongsDB := sort(sort(FileRead("SongList.db")),,functionsort) 
-	global refresh
-	if %songsdbmem%.length=0 or refresh=1
+	loop parse SongsDB, "`n"
 	{
-		if %songsdbmem%.length>0
-			%songsdbmem% := []
-		loop parse SongsDB, "`n"
-		{
 		song_data := strsplit(A_Loopfield, ";")
 		if song_data.length=0
 			break
-		%songsdbmem%.push(Generate_Chart_Data(song_data[1], song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]]))
-		}
+		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], A_Index))
 	}
-	Return
 }
 
 ;Called when Edit menu is closed. Enables/Disables checkboxes
@@ -382,7 +399,6 @@ ModifySettings(*)
 				break
 		}
 	}
-	global refresh:=1
 }
 
 SaveAndExit(*)
@@ -413,19 +429,21 @@ SaveAndExit(*)
 ;Min/MaxArray are fixed values for min/max difficulty on each mode: 
 ;e.g. 9 is the highest minimum '*'-count for 4k&5k NM
 ;e.g. 7 is the lowest maximum '*'-count for 5k&6k&7k MX
+;New: Min/MaxArrays are dynamically adjusted depending on selected SongPacks.
 SetMinMaxBoundaries()
-{	static minarray := [[9,9,11,12],[12,13,14,14],[15,15,15,15],[15,15,15,15]]
-	static maxarray := [[1,1,1,1],[4,4,4,3],[6,7,7,7],[10,10,12,10]]
-	minimum:=mindiff.value, maximum:=maxdiff.value
+{	
+	;static minarray := [[9,9,11,12],[13,13,14,14],[15,15,15,15],[15,15,15,15]]
+	;static maxarray := [[1,1,1,1],[3,4,4,3],[6,7,7,7],[10,10,12,10]]
+	global minarray,maxarray
 	indexkdisable:=fillarr(4,0)
 	safetykmode:=4
 	for indexd in diffmode
 	{
-		B_Index:=A_Index
+		B_Index:=A_Index-1
 		indexddisable:=0
 			for indexk in kmode
 			{
-				if indexk.value=1 and (minimum>minarray[B_Index][A_Index] or maximum<maxarray[B_Index][A_Index])
+				if indexk.value=1 and (mindiff.value>minarray[4 * B_Index + A_Index] or maxdiff.value<maxarray[4 * B_Index + A_Index])
 				{
 					indexkdisable[A_Index]++
 					indexddisable++
@@ -433,28 +451,21 @@ SetMinMaxBoundaries()
 				else
 				{
 					if indexd.value=0
-					{
-						safetykmode--
 						indexkdisable[A_Index]++
-					}
 					if indexk.value=0
 						indexddisable++
 				}
 			}
 		if indexddisable=4
-		{
 			indexd.enabled:=0
-			safetykmode--
-		}
 		else
 			indexd.enabled:=1
 	}
 	while A_Index<=kmode.length
-		if indexkdisable[A_Index]=4 and safetykmode>0
+		if indexkdisable[A_Index]=4
 			kmode[A_Index].enabled:=0
 		else
 			kmode[A_Index].enabled:=1
-	Return 
 }
 
 ToggleAllSongPacks(*)
@@ -467,10 +478,9 @@ ToggleAllSongPacks(*)
 				packs.value:=0
 }
 
-
-Update(slider)
+UpdateSlider(slider:=0)
 {
-statusbar.SetText("")	
+	statusbar.SetText("")	
 	if mindiff.value>maxdiff.value and slider=1
 		mindiff.value:=maxdiff.value
 	else if maxdiff.value<mindiff.value and slider=0
@@ -488,17 +498,14 @@ statusbar.SetText("")
 		else 
 			stars[A_Index].SetFont("s20 CFFFFFF W700")
 	}
-SetMinMaxBoundaries()
-CheckValidFilter()
+	CheckFilter()
 }
 
 ; Determines the song to play and updates the GUI when found
 RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 {
-	if CheckValidFilter()
+	if CheckFilter()
 		Return
-	static songsdbmem:=[]
-	GenerateSongTable(&songsdbmem)
 	loop
 	{
 		;Select Random SongPack
