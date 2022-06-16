@@ -409,7 +409,7 @@ SaveAndExit(*)
 {
 	if settings[1]!=mindiff.value
 		iniwrite(mindiff.value,"DJMaxRandomizer.ini", "config", "min")
-	if settings[2]!=mindiff.value
+	if settings[2]!=maxdiff.value
 		iniwrite(maxdiff.value,"DJMaxRandomizer.ini", "config", "max")
 	if settings[3]!=ArrToStr(kmode)	
 		iniwrite(ArrToStr(kmode), "DJMaxRandomizer.ini", "config", "kmodes")
