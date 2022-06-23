@@ -4,11 +4,10 @@
 ;Needed to generate song database
 ;#include DJMax_Detection.h
 ;Numpad1::GetSongData()
-;Numpad2::Reload
 
 ; Variable initialization
-#NoTrayIcon
-Version:="1.1.220615"
+;#NoTrayIcon
+Version:="1.2.220623"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
 
 ; GUI Initializiation
@@ -83,7 +82,9 @@ DJMaxGui.Add("Text", "x1 y+ w100 right","Max:")
 DJMaxGui.Add("Button", "x20 y+ Default w80 h50", "Go!").OnEvent('Click', (*)=>RollSong(songpacks, kmode, diffmode, mindiff, maxdiff))
 DJMaxGui.Add("Button", "x20 y+ Default w80 h50", "Save&&Exit").OnEvent('Click', SaveAndExit)
 DJMaxGui.Add("Text", "xs+7 ys+50 w60","Song: ")
-guisongname	:= DJMaxGui.Add("Text", "x+ yp+2 w310 h30 section"," ")
+(excludebox := DJMaxGui.Add("Checkbox", "xs+7 ys+80 left","Exclude?`n(F4)")).OnEvent('Click', (*)=>ExcludeChart(songnum, kmod, songd))
+excludebox.visible := 0, excludebox.Enabled:=0
+guisongname	:= DJMaxGui.Add("Text", "x+ yp-28 w310 h30 section"," ")
 guikmode		:= DJMaxGui.Add("Text", "xs y+ w30"," ")
 guidiff 		:= DJMaxGui.Add("Text", "x+ w30"," ")
 guistarsy 	:= DJMaxGui.Add("Text", "xs y+ w95 h30"," ")
@@ -102,7 +103,7 @@ catch
 	try FileDelete("DJMaxRandomizer.ini")
 	Iniwrite("min=1`nmax=15`nkmodes=1111`ndifficulty=1111`nwinposx=null`nwinposy=null;", "DJMaxRandomizer.ini", "config")
 	Iniwrite("packs=11111111111111", "DJMaxRandomizer.ini", "packs_selected")
-	Iniwrite("main=1111111111`ncoll=111111110", "DJMaxRandomizer.ini", "dlc_owned")
+	Iniwrite("main=1111111111`ncoll=111111111", "DJMaxRandomizer.ini", "dlc_owned")
 }
 ; Retrieve settings and set them
 	settings.push(Iniread("DJMaxRandomizer.ini", "config", "min"))
@@ -133,24 +134,44 @@ catch
 		songpacks[songpacks.length].enabled:=0
 	loop parse settings[9]
 		dlcpacks[A_Index+maindlccount].value:=A_Loopfield
-
+	
+	if not FileExist("SongList.db")
+	{
+		MsgBox("You need to generate a SongList.db first! Either use GetSongData() from detection lib or download a premade one!")
+		Return
+	}
+	
+	
+	; prefill with data.
+	excludedb := fillarr(1024,0)
+	if FileExist("DJMaxExcludeCharts.db")
+		loop parse excludedbstring :=FileRead("DJMaxExcludeCharts.db"), "`n"
+			excludedb[A_Index]:=A_Loopfield
+	else
+		excludedbstring:=""
  ; Draw GUI
 	UpdateSlider()
+	excludedb.RemoveAt(songsdbmem.length,excludedb.length-songsdbmem.length)
 	DJMaxGui.Show((winposx="null" ? "" : "x" . winposx . "y" winposy))
 	F2::RollSong(songpacks, kmode, diffmode, mindiff, maxdiff)
+	F4::
+	{
+	if excludebox.Enabled=1
+		ExcludeChart(songnum, kmod, songd)
+	}
 
 ; Chart data definition in memory
 class Generate_Chart_Data
 {
 	__New(name, songgroup, fourkdata, fivekdata, sixkdata, eightkdata, newdb:=0)
 	{
-		global debugstring, minarray, maxarray
+		global minarray, maxarray
 		static alphaarr := fillarr(26,0)
 		if newdb=1 
 		{
 			alphaarr := fillarr(26,0)
 			minarray:=fillarr(16,0)
-			maxarray:=fillarr(16,15)
+			maxarray:=fillarr(16,16)
 		}
 		esg:=EvaluateSongGroup(songgroup)
 		this.name 	:= name
@@ -222,7 +243,7 @@ CheckFilter()
 	global songpacks
 	static enabledsongpacks:=0
 	statusbar.SetText("")
-	if enabledsongpacks!=ArrToStr(songpacks)
+	if enabledsongpacks!=ArrToStr(songpacks) or excludebox.value=1
 	{	
 		enabledsongpacks:=ArrToStr(songpacks)
 		GenerateSongTable()
@@ -246,6 +267,50 @@ CheckFilter()
 		statusbar.SetText("Please adjust your settings. That combination leads nowhere @_@")	
 		Return 1
 	}
+}
+
+ExcludeChart(songnum, kmod, songd)
+{
+	global excludedb
+	kshift:=((kmod-4)*4<12 ? (kmod-4)*4 : 12)
+	Switch songd
+	{
+		Case "NM":
+			dshift:=0
+		Case "HD":
+			dshift:=1
+		Case "MX":
+			dshift:=2
+		Case "SC":
+			dshift:=3
+	}
+	excludedb[songnum]+=(0x1<<dshift) << kshift
+	excludebox.value := 1
+	excludebox.enabled := 0
+}
+
+RetrieveChartFromExludeDb(songnum, kmod, songd)
+{
+	global excludedb
+	kshift:=((kmod-4)*4<12 ? (kmod-4)*4 : 12)
+	Switch songd
+	{
+		Case "NM":
+			dshift:=0
+		Case "HD":
+			dshift:=1
+		Case "MX":
+			dshift:=2
+		Case "SC":
+			dshift:=3
+	}
+	try 
+		Return !((excludedb[songnum]>>kshift & 0xF)>>dshift & 0x1)
+	catch
+	{
+		Msgbox("Error in retrieving Excluded chart database entries!`nMost likely SongList.db changed due to added songs.`nIn that case please delete DJMaxExcludeCharts.db and try again!")
+	}
+	
 }
 
 ;Helper function to get value in dlcpack/songpack Array from songgroup String
@@ -372,13 +437,24 @@ FunctionSort(first,last,*)
 ; If Songtable is empty it will generate it
 GenerateSongTable()
 {
-	global songsdbmem
-	static SongsDB := sort(sort(FileRead("SongList.db")),,functionsort) 
+	global songsdbmem := []
+	static SongsDB := sort(sort(FileRead("SongList.db")),,functionsort)
 	loop parse SongsDB, "`n"
 	{
 		song_data := strsplit(A_Loopfield, ";")
 		if song_data.length=0
 			break
+		sd_index:=3
+		lp_index:=A_Index
+		for k in [4,5,6,8]
+		{
+			for d in ["NM","HD","MX","SC"]
+			{
+			if !RetrieveChartFromExludeDb(lp_index,k,d)
+				song_data[sd_index]:=0
+			sd_index++
+			}
+		}
 		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], A_Index))
 	}
 }
@@ -426,6 +502,18 @@ SaveAndExit(*)
 		iniwrite(ArrToStr(dlcpacks,1,maindlccount),"DJMaxRandomizer.ini", "dlc_owned", "main")
 	if settings[9]!=ArrToStr(dlcpacks,maindlccount+1)
 		iniwrite(ArrToStr(dlcpacks,maindlccount+1),"DJMaxRandomizer.ini", "dlc_owned", "coll")
+	filedb:=fileopen("DJMaxExcludeCharts.db","w")
+	global excludedbstring:=strsplit(excludedbstring)
+	for chartdata in excludedb
+	{
+		chartdata := Format("0x{:04x}", chartdata)
+			if A_Index>excludedbstring.length or chartdata != excludedbstring[A_Index]
+			{
+				filedb.pos:=7*(A_Index-1)
+				filedb.write(chartdata . "`n")
+			}
+	}
+	filedb.close()
 	ExitApp
 }
 
@@ -509,6 +597,7 @@ UpdateSlider(slider:=0)
 ; Determines the song to play and updates the GUI when found
 RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 {
+	
 	if CheckFilter()
 		Return
 	loop
@@ -529,16 +618,16 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 				{
 					Case 1:
 						kmode:="fourk"
-						kmodenice:="4K"
+						kmodnum:=4
 					Case 2:
 						kmode:="fivek"
-						kmodenice:="5K"
+						kmodnum:=5
 					Case 3:
 						kmode:="sixk"
-						kmodenice:="6K"
+						kmodnum:=6
 					Case 4:
 						kmode:="eightk"
-						kmodenice:="8K"
+						kmodnum:=8
 				}	
 		}
 		
@@ -567,10 +656,10 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 						color:="FF00FF"
 				}
 		}
-	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and songsdbmem[songnumber].sg=songpack and songsdbmem[songnumber].order>-1
+	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and songsdbmem[songnumber].sg=songpack and songsdbmem[songnumber].order>-1 and RetrieveChartFromExludeDb(songnumber, kmodnum, songdif)
 	guisongname.SetFont("s10")
 	guisongname.Text:=songsdbmem[songnumber].Name
-	guikmode.Text:=kmodenice
+	guikmode.Text:=kmodnum . "K"
 	guidiff.SetFont("W700 C" . color)
 	guidiff.Text:=songdif
 	guistarsy.SetFont("s20 CFFFD55 W700")
@@ -592,6 +681,10 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 		else 
 			guistarsp.Text:=guistarsp.Text . "★"
 	}
+global songnum:=songnumber, kmod:=kmodnum, songd:=songdif
+excludebox.enabled := 1
+excludebox.value:= 0
+excludebox.visible := 1
 SelectSong(Songsdbmem[songnumber], kmode, songdif)
 }
 
@@ -618,8 +711,9 @@ SelectSong(song, kmode, songdif)
 	{
 		send "a"
 		sleep 25
-		send "{Up}"
+		send "{Up down}"
 		Sleep 25
+		Send "{Up up}"
 	}
 	statusbar.SetText("Sending Input..." song.order "x " substr(song.name,1,1))	
 	while A_Index<=song.order
@@ -630,32 +724,39 @@ SelectSong(song, kmode, songdif)
 	switch kmode
 	{
 		case "fourk":
-			Send "4"
+			Send "{4 down}"
 			sleep 25
+			Send "{4 up}"
 		case "fivek":
-			Send "5"
+			Send "{5 down}"
 			sleep 25
+			Send "{5 up}"
 		case "sixk":
-			Send "6"
+			Send "{6 down}"
 			sleep 25
+			Send "{6 up}"
 		case "eightk":
-			Send "8"
+			Send "{8 down}"
 			sleep 25
+			Send "{8 up}"
 	}
 	if (songdif="HD" or songdif="MX" or songdif="SC") and song.%kmode%.hd>0
 	{
-			Send "{Right}"
+			Send "{right down}"
 			sleep 25
+			Send "{right up}"
 	}
 	if (songdif="MX" or songdif="SC") and song.%kmode%.mx>0
 	{
-			Send "{Right}"
+			Send "{right down}"
 			sleep 25
+			Send "{right up}"
 	}
 	if songdif="SC" and song.%kmode%.sc>0
 	{
-			Send "{Right}"
+			Send "{right down}"
 			sleep 25
+			Send "{right up}"
 	}
 	statusbar.SetText("Are you Ready? Never give up!")	
 }
