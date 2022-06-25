@@ -6,8 +6,8 @@
 ;Numpad1::GetSongData()
 
 ; Variable initialization
-;#NoTrayIcon
-Version:="1.2.220623"
+#NoTrayIcon
+Version:="1.2.220625"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
 
 ; GUI Initializiation
@@ -393,11 +393,11 @@ DebugFunc(name, order, songpack)
 	{
 		try WinActivate("ahk_exe DJMax Respect V.exe")
 		send (chr(ord(strlower(debugstring))-1))
-		sleep 25
+		Sleep 25
 		send strlower(debugstring)
-		sleep 25
+		Sleep 25
 		send "{up}"
-		sleep 25
+		Sleep 25
 		pre:=1
 	}
 	If debugstring!="" and substr(strupper(name),1,strlen(debugstring))=debugstring
@@ -697,66 +697,74 @@ SelectSong(song, kmode, songdif)
 		statusbar.SetText("DJMaxV window not found! Can't send you straight to the song :(")	
 		Return
 	}
-
-	;while PixelGetColor(921,175)!="0xFFFFFF"
-	;	{
-	;	Send "{RShift Down}"
-	;	Sleep 50
-	;	Send "{RShift Up}"
-	;	Sleep 500
-	;	}
-	Send "{PgUp}"
-	sleep 25
+	Send "{PgUp down}"
+	Sleep 25
+	Send "{PgUp up}"
+	Sleep 25
 	if song.order=0
 	{
 		send "a"
-		sleep 25
+		Sleep 25
 		send "{Up down}"
 		Sleep 25
 		Send "{Up up}"
+		Sleep 25
 	}
 	statusbar.SetText("Sending Input..." song.order "x " substr(song.name,1,1))	
 	while A_Index<=song.order
 	{
-		Send strlower(substr(song.name,1,1))
-		sleep 25
+		Send "{" . strlower(substr(song.name,1,1)) . " down}"
+		Sleep 10
+		Send "{" . strlower(substr(song.name,1,1)) . " up}"
+		Sleep 25
+		if A_Index=1
+			Sleep 300
 	}
+	oldletter:=strlower(substr(song.name,1,1))
+	;dMsgBox("Sent Input:" song.order "x " substr(song.name,1,1))
 	switch kmode
 	{
 		case "fourk":
 			Send "{4 down}"
-			sleep 25
+			Sleep 25
 			Send "{4 up}"
+			Sleep 25
 		case "fivek":
 			Send "{5 down}"
-			sleep 25
+			Sleep 25
 			Send "{5 up}"
+			Sleep 25
 		case "sixk":
 			Send "{6 down}"
-			sleep 25
+			Sleep 25
 			Send "{6 up}"
+			Sleep 25
 		case "eightk":
 			Send "{8 down}"
-			sleep 25
+			Sleep 25
 			Send "{8 up}"
+			Sleep 25
 	}
 	if (songdif="HD" or songdif="MX" or songdif="SC") and song.%kmode%.hd>0
 	{
 			Send "{right down}"
-			sleep 25
+			Sleep 25
 			Send "{right up}"
+			Sleep 25
 	}
 	if (songdif="MX" or songdif="SC") and song.%kmode%.mx>0
 	{
 			Send "{right down}"
-			sleep 25
+			Sleep 25
 			Send "{right up}"
+			Sleep 25
 	}
 	if songdif="SC" and song.%kmode%.sc>0
 	{
 			Send "{right down}"
-			sleep 25
+			Sleep 25
 			Send "{right up}"
+			Sleep 25
 	}
 	statusbar.SetText("Are you Ready? Never give up!")	
 }
