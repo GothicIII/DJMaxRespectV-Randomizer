@@ -596,6 +596,15 @@ UpdateSlider(slider:=0)
 	CheckFilter()
 }
 
+
+CheckSongPack(sg)
+{
+	for pack in songpacks
+		if sg=pack.text and pack.value=1
+			Return 1
+	Return 0
+}
+
 ; Determines the song to play and updates the GUI when found
 RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 {
@@ -604,12 +613,6 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 		Return
 	loop
 	{
-		;Select Random SongPack
-		songpack:=""
-		while songpack=""
-			if songpacks[randomnum := Random(1,14)].value=1
-				songpack:=songpacks[randomnum].Text
-
 		;Select Random k-Mode
 		kmode:=""
 		while kmode=""
@@ -658,7 +661,7 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 						color:="FF00FF"
 				}
 		}
-	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and songsdbmem[songnumber].sg=songpack and songsdbmem[songnumber].order>-1 and RetrieveChartFromExludeDb(songnumber, kmodnum, songdif)
+	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and CheckSongPack(songsdbmem[songnumber].sg) and songsdbmem[songnumber].order>-1 and RetrieveChartFromExludeDb(songnumber, kmodnum, songdif)
 	guisongname.SetFont("s10")
 	guisongname.Text:=songsdbmem[songnumber].Name
 	guikmode.Text:=kmodnum . "K"
@@ -717,7 +720,7 @@ SelectSong(song, kmode, songdif)
 	{
 		Send "{" . strlower(substr(song.name,1,1)) . " down}"
 		Sleep 10
-		Send "{" . strlower(substr(song.name,1,1)) . " up}"//
+		Send "{" . strlower(substr(song.name,1,1)) . " up}"
 		Sleep 25
 		if A_Index=1
 			Sleep 300
