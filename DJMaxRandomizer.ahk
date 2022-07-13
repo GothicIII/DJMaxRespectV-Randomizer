@@ -7,7 +7,7 @@
 
 ; Variable initialization
 #NoTrayIcon
-Version:="1.2.220625"
+Version:="1.2.220713"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
 
 ; GUI Initializiation
@@ -451,11 +451,13 @@ GenerateSongTable()
 			for d in ["NM","HD","MX","SC"]
 			{
 			if !RetrieveChartFromExludeDb(lp_index,k,d)
-				song_data[sd_index]:=0
+				song_data[sd_index]:=-1
 			sd_index++
 			}
 		}
 		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], A_Index))
+;		if A_Index = 432
+;			MsgBox(song_data[1] " " song_data[15] "," song_data[16] "," song_data[17] "," song_data[18])
 	}
 }
 
@@ -715,7 +717,7 @@ SelectSong(song, kmode, songdif)
 	{
 		Send "{" . strlower(substr(song.name,1,1)) . " down}"
 		Sleep 10
-		Send "{" . strlower(substr(song.name,1,1)) . " up}"
+		Send "{" . strlower(substr(song.name,1,1)) . " up}"//
 		Sleep 25
 		if A_Index=1
 			Sleep 300
@@ -728,38 +730,35 @@ SelectSong(song, kmode, songdif)
 			Send "{4 down}"
 			Sleep 25
 			Send "{4 up}"
-			Sleep 25
 		case "fivek":
 			Send "{5 down}"
 			Sleep 25
 			Send "{5 up}"
-			Sleep 25
 		case "sixk":
 			Send "{6 down}"
 			Sleep 25
 			Send "{6 up}"
-			Sleep 25
 		case "eightk":
 			Send "{8 down}"
 			Sleep 25
 			Send "{8 up}"
-			Sleep 25
 	}
-	if (songdif="HD" or songdif="MX" or songdif="SC") and song.%kmode%.hd>0
+	Sleep 25
+	if (songdif="HD" or songdif="MX" or songdif="SC") and (song.%kmode%.hd>0 or song.%kmode%.hd=-1)
 	{
 			Send "{right down}"
 			Sleep 25
 			Send "{right up}"
 			Sleep 25
 	}
-	if (songdif="MX" or songdif="SC") and song.%kmode%.mx>0
+	if (songdif="MX" or songdif="SC") and (song.%kmode%.mx>0 or song.%kmode%.mx=-1)
 	{
 			Send "{right down}"
 			Sleep 25
 			Send "{right up}"
 			Sleep 25
 	}
-	if songdif="SC" and song.%kmode%.sc>0
+	if songdif="SC" and (song.%kmode%.sc>0 or song.%kmode%.sc=-1)
 	{
 			Send "{right down}"
 			Sleep 25
