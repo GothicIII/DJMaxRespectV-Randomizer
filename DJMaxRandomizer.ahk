@@ -6,8 +6,8 @@
 ;Numpad1::GetSongData()
 
 ; Variable initialization
-#NoTrayIcon
-Version:="1.2.220713"
+;#NoTrayIcon
+Version:="1.3.220729"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
 
 ; GUI Initializiation
@@ -26,6 +26,7 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Emotional Sense"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Technika 1"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 2"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 3"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technica Tune & Q"))
 maindlccount:=dlcpacks.length
 DJMaxGuiSubMenu.Add("Text", "x10 y+40 w250 left","Collaboration Packs").SetFont("Underline")
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ w150 section", "Guilty Gear"))
@@ -57,6 +58,7 @@ songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp ", "ES"))
 songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "T1"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T2"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T3"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "TQ"))
 songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "CO"))
 for each in songpacks
 	each.OnEvent('Click', (*)=>Checkfilter())
@@ -148,7 +150,7 @@ catch
 		loop parse excludedbstring :=FileRead("DJMaxExcludeCharts.db"), "`n"
 			excludedb[A_Index]:=A_Loopfield
 	else
-		excludedbstring:=""
+		global excludedbstring:=""
  ; Draw GUI
 	UpdateSlider()
 	excludedb.RemoveAt(songsdbmem.length,excludedb.length-songsdbmem.length)
@@ -344,34 +346,36 @@ EvaluateSongGroup(sg, dlc:=1)
 				val:=12
 			Case "T3":
 				val:=13
+			Case "TQ":
+				val:=14	
 			Case "GG":
-				val:=14
-			Case "CH":
 				val:=15
-			Case "CY":
+			Case "CH":
 				val:=16
-			Case "DE":
+			Case "CY":
 				val:=17
-			Case "ET":
+			Case "DE":
 				val:=18
-			Case "GC":
+			Case "ET":
 				val:=19
-			Case "GF":
+			Case "GC":
 				val:=20
-			Case "NE":
+			Case "GF":
 				val:=21
-			Case "MD":
+			Case "NE":
 				val:=22
+			Case "MD":
+				val:=23
 			Default:
 				MsgBox("Invalid Songgroup! Data corrupted?")
 				ExitApp
 		}
 	if dlc=1 and val>3
-		Return dlcpacks[val-3].value + (val>13 ? 2 : 0)
+		Return dlcpacks[val-3].value + (val>14 ? 2 : 0)
 	if dlc=1
 		Return 1
 	else 
-		Return songpacks[(val>13 ? 14 : val)].value
+		Return songpacks[(val>14 ? 15 : val)].value
 }
 
 ; Helper Function to initialize arrays
@@ -386,29 +390,16 @@ Return arr
 ; Prints order of internal db songs
 DebugFunc(name, order, songpack)
 {
-	; set search string
-	debugstring:=""
-	static pre:=0
-	if pre=0
-	{
-		try WinActivate("ahk_exe DJMax Respect V.exe")
-		send (chr(ord(strlower(debugstring))-1))
-		Sleep 25
-		send strlower(debugstring)
-		Sleep 25
-		send "{up}"
-		Sleep 25
-		pre:=1
-	}
-	If debugstring!="" and substr(strupper(name),1,strlen(debugstring))=debugstring
+		static orderstr:=""
+		static oldorder:=0
+		if oldorder>order
 		{
-		try {
-		WinActivate("ahk_exe DJMax Respect V.exe")
-		Send "{Down}"
-		Sleep 25
+			if substr(strupper(name),1,1)="M"
+			MsgBox(orderstr)
+			orderstr:=""
 		}
-		MsgBox(name "," order "," songpack)
-		}
+		oldorder:=order
+		orderstr := orderstr . name . "," . order . "," . songpack . "`n"
 }
 
 ; Extends default sorting function since DJMax has a weird song sorting scheme 
@@ -421,13 +412,15 @@ DebugFunc(name, order, songpack)
 FunctionSort(first,last,*)
 {
 	;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
-	first := strupper(first), last:= strupper(last)
+	;first := strupper(first), last:= strupper(last)
+
+	
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1)) 
-		if (charl=59 and charf!=59) or (charf=45 and charl<=78) or (charf=39 and charl=32) or (charf=39 and charl=76) or (charf=39 and charl=68) or (charf=50 and charl=126)
+		if (charl=59 and charf!=59) or (charf=45 and charl<=78) or (charf=39 and charl=32) or (charf=39 and charl=76) or (charf=39 and charl=68) or (charf=50 and charl=126) or (charl=80 and charf=108)
 			Return 1
-		if (charf=59 and charl!=59) or (charl=45 and charf<=78) or (charl=39 and charf=32) or (charl=39 and charf=76) or (charl=39 and charf=68) or (charf=126 and charl=50)
+		if (charf=59 and charl!=59) or (charl=45 and charf<=78) or (charl=39 and charf=32) or (charl=39 and charf=76) or (charl=39 and charf=68) or (charf=126 and charl=50) or (charl=108 and charf=80)
 			Return -1
 		if charf!=charl or (charf=59 and charl=59)
 			Return 0
