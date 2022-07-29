@@ -6,7 +6,7 @@
 ;Numpad1::GetSongData()
 
 ; Variable initialization
-;#NoTrayIcon
+#NoTrayIcon
 Version:="1.3.220729"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
 
