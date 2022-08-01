@@ -418,9 +418,9 @@ FunctionSort(first,last,*)
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1)) 
-		if (charl=59 and charf!=59) or (charf=45 and charl<=78) or (charf=39 and charl=32) or (charf=39 and charl=76) or (charf=39 and charl=68) or (charf=50 and charl=126) or (charl=80 and charf=108)
+		if (charl=59 and charf!=59) or (charf=45 and charl<=110) or (charf=39 and charl=32) or (charf=39 and charl=76) or (charf=39 and charl=68) or (charf=50 and charl=126) or (charl=80 and charf=108)
 			Return 1
-		if (charf=59 and charl!=59) or (charl=45 and charf<=78) or (charl=39 and charf=32) or (charl=39 and charf=76) or (charl=39 and charf=68) or (charf=126 and charl=50) or (charl=108 and charf=80)
+		if (charf=59 and charl!=59) or (charl=45 and charf<=110) or (charl=39 and charf=32) or (charl=39 and charf=76) or (charl=39 and charf=68) or (charf=126 and charl=50) or (charl=108 and charf=80)
 			Return -1
 		if charf!=charl or (charf=59 and charl=59)
 			Return 0
