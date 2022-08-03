@@ -412,15 +412,28 @@ DebugFunc(name, order, songpack)
 FunctionSort(first,last,*)
 {
 	;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
-	;first := strupper(first), last:= strupper(last)
+	first := strupper(substr(first,1,4)) . substr(first,5,strlen(first)-4)
+	last:= strupper(substr(last,1,4)) . substr(last,5,strlen(last)-4)
 
 	
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1)) 
-		if (charl=59 and charf!=59) or (charf=45 and charl<=110) or (charf=39 and charl=32) or (charf=39 and charl=76) or (charf=39 and charl=68) or (charf=50 and charl=126) or (charl=80 and charf=108)
+		if ((charl=59 and charf!=59)
+		or (charf=45 and charl<=78)
+		or (charf=39 and charl=32)
+		or (charf=39 and charl=76)
+		or (charf=39 and charl=68)
+		or (charf=50 and charl=126)
+		or (charf=108 and charl=80))
 			Return 1
-		if (charf=59 and charl!=59) or (charl=45 and charf<=110) or (charl=39 and charf=32) or (charl=39 and charf=76) or (charl=39 and charf=68) or (charf=126 and charl=50) or (charl=108 and charf=80)
+		if ((charf=59 and charl!=59)
+		or (charl=45 and charf<=78)
+		or (charl=39 and charf=32)
+		or (charl=39 and charf=76)
+		or (charl=39 and charf=68)
+		or (charl=50 and charf=126)
+		or (charl=108 and charf=80))
 			Return -1
 		if charf!=charl or (charf=59 and charl=59)
 			Return 0
