@@ -7,7 +7,7 @@
 
 ; Variable initialization
 #NoTrayIcon
-Version:="1.3.220729"
+Version:="1.3.220803"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
 
 ; GUI Initializiation
