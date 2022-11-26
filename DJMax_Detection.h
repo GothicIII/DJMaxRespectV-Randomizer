@@ -16,6 +16,8 @@
 ;//
 
 refresh:=1 
+Numpad2::GetSongGroupColor()
+
 
 ; Chart data definition in memory
 class Generate_Chart_Data_old
@@ -75,21 +77,22 @@ Class song_order_numbers
 	__New()
 	{
 	;//[currentline (always 1, but if detection fails, you can start from a later song by providing the songcount), beginning line in namesdb of that songpack, number of songs]
-	this.re 	:= [1,1,82]
-	this.pone 	:= [1,83,56]
-	this.ptwo	:= [1,139,53]
-	this.pthree	:= [1,192,22]
-	this.tr		:= [1,214,20]
-	this.cl		:= [1,234,24]
-	this.bs		:= [1,258,21]
-	this.vone	:= [1,279,20]
-	this.vtwo	:= [1,299,21]
-	this.es		:= [1,320,8]
-	this.tone	:= [1,328,21]
-	this.ttwo	:= [1,349,23]
-	this.tthree	:= [1,372,29]
-	this.tq		:= [1,401,19]
-	this.co		:= [1,420,70]
+	this.re 	:= [1,1,84]
+	this.pone 	:= [1,85,56]
+	this.ptwo	:= [1,141,53]
+	this.pthree	:= [1,194,22]
+	this.tr		:= [1,216,20]
+	this.cl		:= [1,236,24]
+	this.bs		:= [1,260,21]
+	this.vone	:= [1,281,20]
+	this.vtwo	:= [1,301,21]
+	this.vthree	:= [1,322,20]
+	this.es		:= [1,342,8]
+	this.tone	:= [1,350,21]
+	this.ttwo	:= [1,371,23]
+	this.tthree	:= [1,394,29]
+	this.tq		:= [1,423,19]
+	this.co		:= [1,442,85]
 	}
 }
 
@@ -117,7 +120,7 @@ AppendSongData(songobject){
 	songobject.eightk.hd ";"
 	songobject.eightk.mx ";"
 	songobject.eightk.sc "`n" 
-	), "SongList2.db"
+	), "SongList_New.db"
 	}
 	catch
 		AppendSongData(songobject)
@@ -188,6 +191,8 @@ FetchSongname(SongGroup)
 			suffix:="vone"
 		Case "V2":
 			suffix:="vtwo"
+		Case "V3":
+			suffix:="vthree"
 		Case "ES":
 			suffix:="es"
 		Case "T1":
@@ -256,6 +261,8 @@ GetSongData(){
 				buttoncolor := "0xFF7E31"
 			Case "V2":
 				buttoncolor := "0xCB3F5D"
+			Case "V3":
+				buttoncolor := "0x691AC4"
 			Case "ES":
 				buttoncolor := "0x1AD10B"
 			Case "T1":
@@ -335,6 +342,8 @@ WinActivate("ahk_exe DJMax Respect V.exe")
 		Return "V1"
 	Case "0xBA3955":
 		Return "V2"
+	Case "0x691AC4":
+		Return "V3"
 	Case "0x34DF26":
 		Return "ES"
 	Case "0xF31CC7":
@@ -351,4 +360,9 @@ WinActivate("ahk_exe DJMax Respect V.exe")
 	Default:
 		MsgBox("Wrong color detected. Maybe try again? " pxcolor)
 		Return GetSongGroup()	
+}
+
+GetSongGroupColor(){
+	WinActivate("ahk_exe DJMax Respect V.exe")
+	MsgBox("DLC Color:" . PixelGetColor(110,292) . "`nButton Color:" . PixelGetColor(133,667))
 }
