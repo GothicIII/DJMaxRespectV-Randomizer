@@ -217,13 +217,14 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 
 	; prefill with data.
 	excludedb := Map()
-	excludedbstring := FileOpen("DJMaxExcludeCharts.db", "rw")
-	
-	loop parse, excludedbstring, "`n"	
-	{
-		exclude_data := strsplit(A_LoopReadLine,";")
-		excludedb.Set(exclude_data[1], exclude_data[2])
-	}
+	try
+		loop read, "DJMaxExcludeCharts.db", "`n"	
+		{
+			exclude_data := strsplit(A_LoopReadLine,";")
+			excludedb.Set(exclude_data[1], exclude_data[2])
+		}
+	catch 
+		Msgbox("Could not open DJMaxExcludeCharts.db!`nA new file will be created.",,"T2")
 	
 	; Draw GUI
 	UpdateSlider()
