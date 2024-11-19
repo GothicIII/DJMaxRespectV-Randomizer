@@ -1,15 +1,43 @@
 ;DJMax Respect V Randomizer
 ;Provided to you by GothicIII
 
-;Needed to generate song database
+
+;Changelog since last release:
+; - Optimized config generation and variable initialization (Running for the 1st time disables all DLC packs properly)
+
+; <DEBUG FUNCTIONS>
+; Main header for debug/recording functions
 ;#include DJMax_Detection.h
+
+; Start detecting song Data from current selected songpack tab (not all songs tab!). Writes to SongList.db.
 ;Numpad1::GetSongData()
+;
+;Returns all difficulty banner colors and DLC banner color. Useful for new songpacks.
+;Numpad2::GetSongGroupColor()
+
+;Numpad3::Reload()
+
+; Function to quickly test if all songpacks are properly loaded. 1st column shows if it is on or off
+;Numpad4::ListSongPacks()
+
+; Function call testing if fetching the songname works. Repeated calls should return the next song from this songpack.
+;Numpad5::Msgbox(FetchSongName("CM"))
+
+;Generates Songname.db from SongList.
+;Numpad6::CreateSongNameDbFromSongList()
+
+; Quickly shows songpack bounderies. They are directly taken from SongNames db. Add new cm/cv songpacks in global section of Detection.h!
+;Numpad9::Song_Order_Numbers_New(1)
+;try (FileDelete("InternalDB.db"))
+
+
 
 ; Variable initialization
 #NoTrayIcon
-Version:="1.4.221126"
-songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[]
-try (FileDelete("neworder.txt"))
+OnMessage(0x5555,Receive_Connection_Data)
+Version:="2.0.241119"
+songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
+
 
 ; Create new settings file if it is missing
 try 
@@ -20,12 +48,13 @@ catch
 	MsgBox("Generating new config...")
 	try FileDelete("DJMaxRandomizer.ini")
 	Iniwrite("min=1`nmax=15`nkmodes=1111`ndifficulty=1111`nwinposx=null`nwinposy=null`nkeydelay=25`nversion=" . Version, "DJMaxRandomizer.ini", "config")
-	Iniwrite("packs=1", "DJMaxRandomizer.ini", "packs_selected")
-	Iniwrite("main=0`ncoll=0", "DJMaxRandomizer.ini", "dlc_owned")
+	Iniwrite("packs=1111", "DJMaxRandomizer.ini", "packs_selected")
+	Iniwrite("main=0`ncollmus=0`ncollvar=0", "DJMaxRandomizer.ini", "dlc_owned")
 }
 
 ; GUI Initializiation
 ; EDIT menu Gui
+
 (DJMaxGuiSubMenu := Gui("","DLC-Settings")).OnEvent('Close', ModifySettings)
 DJMaxGuiSubMenu.SetFont("S12")
 DJMaxGuiSubMenu.Add("Text", "x10 y1 w250 left section","Main DLC-Packs").SetFont("Underline")
@@ -36,26 +65,38 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Black Square"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "V Extension 1"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 2"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 3"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Emotional Sense"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Technika 1"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 4"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 5"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Liberty"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Emotional Sense"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 1"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 2"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 3"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp+10", "Technica Tune && Q"))
 maindlccount:=dlcpacks.length
-DJMaxGuiSubMenu.Add("Text", "x10 y+40 w250 left","Collaboration Packs").SetFont("Underline")
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ w150 section", "Guilty Gear"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Chunism"))
+DJMaxGuiSubMenu.Add("Text", "x10 y+40 w250 left","Collaboration").SetFont("Underline")
+DJMaxGuiSubMenu.Add("Text", "x10 y+ w150 left section","Music Packs:").SetFont("Underline")
+DJMaxGuiSubMenu.Add("Text", "x+ yp left","Variety Packs:").SetFont("Underline")
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x10 y+ w150 section", "Chunism"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Cytus"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Deemo"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Estimate"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Deemo"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "EZ2ON"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Groove Coaster"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Girls' Frontline"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Nexon"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Muse Dash"))
-DJMaxGuiSubMenu.Add("Text", "x10 y+20 w450 left","Select the DLCs you have. Settings will be saved.`nThis will regenerate the random table so unowned songs`nwon't be rolled.")
+musicdlccount:=dlcpacks.length
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Guilty Gear"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Estimate"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Falcom"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Girls' Frontline"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Maplestory"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Nexon"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Tekken"))
+(dlcpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "x+ ys wp Checked", "All DLC")).OnEvent('Click', ToggleMainDLCSongPacks)
+(collabpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "y+ wp Checked", "All Collab")).OnEvent('Click', ToggleCollSongPacks)
+DJMaxGuiSubMenu.Add("Text", "x10 y+100 w450 left","Select the DLCs you have. Settings will be saved.`nThis will regenerate the random table so unowned songs`nwon't be rolled.")
 DJMaxGuiSubMenu.Add("Text", "x10 y+20 left","Keydelay in msec:")
 delaykeyinput := DJMaxGuiSubMenu.Add("Slider", "x+ Tooltip Range5-100", iniread("DJMaxRandomizer.ini", "config", "keydelay"))
-DJMaxGuiSubMenu.Add("Text", "x10 y+20 left","If song selection often stops on the wrong song/difficutly`nset this higher.`nLower values will increase song selection speed`nRecommended: 25 msec")
+DJMaxGuiSubMenu.Add("Text", "x10 y+20 left","If song selection often stops on the wrong song/difficulty`nset this higher.`nLower values will increase song selection speed`nRecommended: 25 msec")
 DJMaxGuiSubMenu.Add("Link", "x10 y+20 left",'Latest version: <a href="https://github.com/GothicIII/DJMaxRespectV-Randomizer/releases">Release page</a>')
 DJMaxGuiSubMenu.Add("Text", "y+-10 right x375", "v" . Version).SetFont("s8")
 
@@ -64,6 +105,7 @@ DJMaxGuiSubMenu.Add("Text", "y+-10 right x375", "v" . Version).SetFont("s8")
 DJMaxGui.SetFont("S12")
 DJMaxGui.Add("Text", "x1 y10 w100 right","Song-Packs:")
 songpacks.push(DJMaxGui.Add("Checkbox", "x+10 w65 section", "RE"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "RV"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "P1"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "P2"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "P3"))
@@ -73,17 +115,21 @@ songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "BS"))
 songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "V1"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V2"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V3"))
-songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp ", "ES"))
-songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "T1"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V4"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V5"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "VL"))
+songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "ES"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T1"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T2"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T3"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "TQ"))
-songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "CO"))
+songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "CM"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "CV"))
 for each in songpacks
 	each.OnEvent('Click', (*)=>Checkfilter())
 DJMaxGui.Add("Text", "y+ wp hp", "")
 (songpacktoggle := DJMaxGui.Add("Checkbox", "y+ wp Checked", "All")).OnEvent('Click', ToggleAllSongPacks)
-DJMaxGui.Add("Button", "y+ hp", "Settings").OnEvent('Click', (*)=>DjMaxGuiSubMenu.Show((DJMaxGui.GetClientPos(&x,&y,&w)) "x" x+w . "y" . y-30 ))
+DJMaxGui.Add("Button", "y+ hp", "Options").OnEvent('Click', (*)=>DjMaxGuiSubMenu.Show((DJMaxGui.GetClientPos(&x,&y,&w)) "x" x+w . "y" . y-30 ))
 DJMaxGui.Add("Text", "x1 yp+40 w100 right","K-Modes:")
 kmode.push(DJMaxGui.Add("Checkbox", "x+10 yp w65", "4k"))
 kmode.push(DJMaxGui.Add("Checkbox", "x+ wp", "5k"))
@@ -108,7 +154,7 @@ guisongname	:= DJMaxGui.Add("Text", "x+ ys+52 w270 h30 section"," ")
 guisongname.SetFont("S10")
 guikmode		:= DJMaxGui.Add("Text", "xp y+ w30"," ")
 guidiff 		:= DJMaxGui.Add("Text", "x+ w30"," ")
-(excludebox := DJMaxGui.Add("Checkbox", "x+60 left","Exclude Chart? (F4)")).OnEvent('Click', (*)=>ExcludeChart(songnum, kmod, songd))
+(excludebox := DJMaxGui.Add("Checkbox", "x+60 left","Exclude Chart? (F4)")).OnEvent('Click', (*)=>ExcludeChart(songid, kmod, songd))
 excludebox.visible := 0, excludebox.Enabled:=0
 guistarsy 	:= DJMaxGui.Add("Text", "xs y+ w90 h30"," ")
 guistarso	:= DJMaxGui.Add("Text", "x+ yp wp hp"," ")
@@ -128,7 +174,8 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 	settings.push(iniread("DJMaxRandomizer.ini", "config", "keydelay"))
 	settings.push(iniread("DJMaxRandomizer.ini","packs_selected", "packs"))
 	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "main"))
-	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "coll"))
+	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "collmus"))
+	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "collvar"))
 	mindiff.value:=settings[1]
 	maxdiff.value:=settings[2]
 	loop parse settings[3]
@@ -137,49 +184,65 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 		diffmode[A_Index].value:=A_Loopfield
 	winposx:=settings[5]
 	winposy:=settings[6]
+	if settings[8]=0
+		settings[8]:=1
 	loop parse settings[8]
 		songpacks[A_Index].value:=A_Loopfield
+	; main dlcpacks
+	if settings[9]="0"
+		loop maindlccount-1
+			settings[9]:=settings[9] . "0"
 	loop parse settings[9]
 	{
 		dlcpacks[A_Index].value:=A_Loopfield
-		songpacks[A_Index+3].Enabled:=A_Loopfield
+		songpacks[A_Index+4].Enabled:=A_Loopfield
 	}
-	if settings[10]="000000000"
-		songpacks[songpacks.length].enabled:=0
+	; dlcmus
+	if settings[10]=0
+		songpacks[songpacks.length-1].enabled:=0
 	loop parse settings[10]
 		dlcpacks[A_Index+maindlccount].value:=A_Loopfield
-	
+	; dlcvar
+	if settings[11]=0
+		songpacks[songpacks.length].enabled:=0
+	loop parse settings[11]
+		dlcpacks[A_Index+musicdlccount].value:=A_Loopfield
 	if not FileExist("SongList.db")
 	{
-		MsgBox("You need to generate a SongList.db first! Either use GetSongData() from detection lib or download a premade one!")
-		Return
+		if (MsgBox("You need to generate a SongList.db first! Either use GetSongData() from detection lib or download a premade one!","SongList.db missing!",5)= "Retry")
+			Reload
+		else 
+			ExitApp
 	}
 
 	; prefill with data.
-	excludedb := fillarr(1024,0)
-	FileOpen("DJMaxExcludeCharts.db", "rw")
-	loop parse excludedbstring :=FileRead("DJMaxExcludeCharts.db"), "`n"
-		excludedb[A_Index]:=A_Loopfield
-		
- ; Draw GUI
+	excludedb := Map()
+	excludedbstring := FileOpen("DJMaxExcludeCharts.db", "rw")
+	
+	loop parse, excludedbstring, "`n"	
+	{
+		exclude_data := strsplit(A_LoopReadLine,";")
+		excludedb.Set(exclude_data[1], exclude_data[2])
+	}
+	
+	; Draw GUI
 	UpdateSlider()
-	excludedb.RemoveAt(songsdbmem.length,excludedb.length-songsdbmem.length)
-	;DJMaxGui.Opt("+Resize")
 	DJMaxGui.Show((winposx="null" ? "" : "x" . winposx . "y" winposy))
-	;ToolTip "Multiline`nTooltip", 100, 150
 	
+	if A_Args.length>0
+		Receive_Connection_Data(A_Args[1])
 	
-	F2::RollSong(songpacks, kmode, diffmode, mindiff, maxdiff)
+	F2::try RollSong(songpacks, kmode, diffmode, mindiff, maxdiff)
 	F4::
 	{
 	if excludebox.Enabled=1
-		ExcludeChart(songnum, kmod, songd)
+		ExcludeChart(songid, kmod, songd)
 	}
 
 ; Chart data definition in memory
 class Generate_Chart_Data
 {
-	__New(name, songgroup, fourkdata, fivekdata, sixkdata, eightkdata, newdb:=0)
+	__New(name, songgroup, fourkdata, fivekdata, sixkdata, eightkdata, songid, newdb:=0)
 	{
 		global minarray, maxarray
 		static alphaarr := fillarr(26,0), numeric:=0
@@ -192,8 +255,8 @@ class Generate_Chart_Data
 		}
 		esg:=EvaluateSongGroup(songgroup)
 		this.name 	:= name
-		;MsgBox(esg "`n" name)
-		if esg=0 or esg=2
+		this.id		:= songid
+		if esg=0 or esg=2 or esg=4
 			this.order:=-1
 		else 
 			if ord(strupper(this.name))-64 < 1 
@@ -213,10 +276,12 @@ class Generate_Chart_Data
 			this.sixk.%f% := sixkdata[A_Index]
 			this.eightk.%f% := eightkdata[A_Index]
 		}
-		if esg>1
-			this.sg := "CO"
-		else 
-			this.sg := songgroup
+		this.sg := songgroup
+		;Msgbox(this.name " " esg ":" esg>>1)
+		if esg>>1=2
+			this.sg := "CV"
+		if esg>>1=1		
+			this.sg := "CM"
 		while A_Index<=4 and this.order>-1 and EvaluateSongGroup(songgroup,0)
 		{
 			if fourkdata[A_Index] > minarray[4 * A_Index - 3]
@@ -286,9 +351,9 @@ CheckFilter()
 	}
 }
 
-ExcludeChart(songnum, kmod, songd)
+ExcludeChart(songid, kmod, songd)
 {
-	global excludedb
+	hellodb:=Map()
 	kshift:=((kmod-4)*4<12 ? (kmod-4)*4 : 12)
 	Switch songd
 	{
@@ -301,12 +366,12 @@ ExcludeChart(songnum, kmod, songd)
 		Case "SC":
 			dshift:=3
 	}
-	excludedb[songnum]+=(0x1<<dshift) << kshift
+	excludedb.Set(songid, (excludedb.Has(songid)?excludedb.Get(songid):0)+(0x1<<dshift) << kshift)
 	excludebox.value := 1
 	excludebox.enabled := 0
 }
 
-RetrieveChartFromExludeDb(songnum, kmod, songd)
+RetrieveChartFromExludeDb(songid, kmod, songd)
 {
 	global excludedb
 	kshift:=((kmod-4)*4<12 ? (kmod-4)*4 : 12)
@@ -321,80 +386,97 @@ RetrieveChartFromExludeDb(songnum, kmod, songd)
 		Case "SC":
 			dshift:=3
 	}
-	try 
-		Return !((excludedb[songnum]>>kshift & 0xF)>>dshift & 0x1)
-	catch
-	{
-			FileMove("DJMaxExcludeCharts.db", "DJMaxExcludeCharts_before_" . version . ".db", 1) 
-			Msgbox("Error in retrieving Excluded chart database entries!`nMost likely SongList.db changed due to added songs.`nA backup of DJMaxExcludeCharts.db has been made and a new one was created!")
-			Reload
-	}
-	
+	Return !((excludedb.Has(songid)?excludedb.Get(songid):0>>kshift & 0xF)>>dshift & 0x1)
 }
 
 ;Helper function to get value in dlcpack/songpack Array from songgroup String
+;DLC=0 means it only returns if the given songpack is enabled/disabled
+;DLC=1 means it returns if the given songpack is enabled/disabled and if it is maindlc/cm/cv
+;Return 1 reserved for basic packs (always enabled)
+;Return 0/1 Main DLC packs (off/on)
+;Return 2/3 Collab Music packs (off/on)
+;Return 4/5 Collab Variety packs (off/on)
 EvaluateSongGroup(sg, dlc:=1)
 {
 	Switch sg
 		{
 			Case "RE":
 				val:=1
-			Case "P1":
+			Case "RV":
 				val:=2
-			Case "P2":
+			Case "P1":
 				val:=3
-			Case "P3":
+			Case "P2":
 				val:=4
-			Case "TR":
+			Case "P3":
 				val:=5
-			Case "CL":
+			Case "TR":
 				val:=6
-			Case "BS":
+			Case "CL":
 				val:=7
-			Case "V1":
+			Case "BS":
 				val:=8
-			Case "V2":
+			Case "V1":
 				val:=9
-			Case "V3":
+			Case "V2":
 				val:=10
-			Case "ES":
+			Case "V3":
 				val:=11
-			Case "T1":
+			Case "V4":
 				val:=12
-			Case "T2":
+			Case "V5":
 				val:=13
-			Case "T3":
+			Case "VL":
 				val:=14
-			Case "TQ":
+			Case "ES":	
 				val:=15	
-			Case "GG":
+			Case "T1":
 				val:=16
-			Case "CH":
+			Case "T2":
 				val:=17
-			Case "CY":
+			Case "T3":
 				val:=18
-			Case "DE":
+			Case "TQ":
 				val:=19
-			Case "ET":
+			Case "CH":
 				val:=20
-			Case "GC":
+			Case "CY":
 				val:=21
-			Case "GF":
+			Case "DE":
 				val:=22
-			Case "NE":
+			Case "EZ":	
 				val:=23
-			Case "MD":
+			Case "GC":
 				val:=24
+			Case "MD":
+				val:=25
+			Case "GG":
+				val:=26
+			Case "ET":
+				val:=27
+			Case "FA":
+				val:=28
+			Case "GF":
+				val:=29
+			Case "MA":
+				val:=30
+			Case "NE":
+				val:=31				
+			Case "TK":
+				val:=32	
 			Default:
-				MsgBox("Invalid Songgroup! Data corrupted?")
+				MsgBox("Invalid Songgroup! Data corrupted? sg: " . sg)
 				ExitApp
 		}
-	if dlc=1 and val>3
-		Return dlcpacks[val-3].value + (val>14 ? 2 : 0)
 	if dlc=1
-		Return 1
+	{
+		;// RE,RV,P1,P2
+		if val<=4
+			Return 1
+		Return dlcpacks[val-4].value + (val>musicdlccount+4?4:(val>maindlccount+4?2:0))
+	}
 	else 
-		Return songpacks[(val>14 ? 15 : val)].value
+		Return songpacks[(val>musicdlccount+4?songpacks.length:(val>maindlccount+4?songpacks.length-1:val))].value
 }
 
 ; Helper Function to initialize arrays
@@ -406,21 +488,21 @@ while A_index<=count
 Return arr
 }
 
-; Prints order of internal db songs
+; Prints order of internal db songs. Useful to debug sorting function
 DebugFunc(name, order, songpack)
 {
 		static orderstr:=""
 		if order=1 and orderstr!=""
 		{
-			;FileAppend(orderstr, "NewOrder.txt")
-			MsgBox(orderstr)
+			FileAppend(orderstr, "InternalDB.db")
+			;MsgBox(orderstr)
 			orderstr:=""	
 		}
 		orderstr := orderstr . name . "," . order . "," . songpack . "`n"
-		if order=4 and substr(name,1,1)="Z"
+		if order=5 and substr(name,1,1)="Z"
 		{
-			;FileAppend(orderstr, "NewOrder.txt")
-			MsgBox(orderstr)
+			FileAppend(orderstr, "InternalDB.db")
+			;MsgBox(orderstr)
 			ExitApp(0)
 		}
 		
@@ -435,11 +517,16 @@ DebugFunc(name, order, songpack)
 	; U-nivius
 FunctionSort(first,last,*)
 {
+	;dbg:=0
 	;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
+	
+	; "We're gonna die"-exception. Goes against "'" rule. Comes always last.
+	; ToDo
+
 	;Upper first 4 letters since LovePanic comes before Lovely Hands.
 	;Eexceptions for LovePanic/Lovely hands
 	;Else alone breaks Supersonic and NB Ranger songs
-	if (substr(first,1,4)="Love" and substr(last,1,4)="Love")
+	if (substr(first,1,4)=="Love" and substr(last,1,4)=="Love")
 	{
 		first := strupper(substr(first,1,4)) . substr(first,5,strlen(first)-4)
 		last:= strupper(substr(last,1,4)) . substr(last,5,strlen(last)-4)
@@ -450,80 +537,60 @@ FunctionSort(first,last,*)
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))  
-		;if substr(first,1,3)="NB " or substr(last,1,3)="NB "
+		;if charl=ord("'") and dbg=1
 		;	Msgbox(first ":`n" charf " : " chr(charf) "`n" last "`n" charl " : " chr(charl))
-		;Msgbox(ord("-"))
-		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1)) 
+		; moves pos down
 		if ((charf!=59 and charl=59)
-		or (charf=45 and charl<=78))
-		;or (charf=39 and charl=32)
-		;or (charf=39 and charl=76)
-		;or (charf=39 and charl=68)
-		;or (charf=50 and charl=126)
-		;or (charf=108 and charl=80))
+		or (charf=45 and charl<=78)
+		or (charf=39 and charl=82)  ; fixing "Misty Er'a" against "Misty E'ra 'MUI'"
+		or (charf=73 and charl=45)) ; Zeroize/Zero-Break
+		;if charl=ord("'") and dbg=1
+		;	Msgbox(1)
 			Return 1
+		
+		;moves position up
 		if ((charl!=59 and charf=59)
 		or (charl=45 and charf<=78)
-		or (charl=39 and charf=76)
-		or (charl=39 and charf=68)
+		or (charl=39 and charf=68) ; Fixes "Won't back down" against "Wonder Slot" 
+		or (charl=39 and charf=65) ; Fix for We're All gonna die" against "WEA"
+		or (charl=39 and charf=73) ; Fix for We're All gonna die" against "WEI"
+		or (charl=39 and charf=76) ; Fix for We're All gonna die" against "WEL" 
 		or (charl=50 and charf=126)
 		or (charl=108 and charf=80))
-		;or (charl=39 and charf=32)
+			;if charl=ord("'") and dbg=1
+			;	Msgbox(-1)
 			Return -1
-		if charf!=charl
-			Return 0
-	}
-}
-
-customsort(strf, strl, *)
-{
-	;Msgbox(ord(","))
-	strf := strupper(substr(strf,1,4)) . substr(strf,5,strlen(strf)-4)
-	strl:= strupper(substr(strl,1,4)) . substr(strl,5,strlen(strl)-4)
-	;Msgbox(strf "`n" strl)
-	loop parse strf
-	{
-		charf:=ord(A_Loopfield), charl:=ord(substr(strl,A_Index,1))
-		if charf=39
-			charf+=128
-		if charl=39
-			charl+=128
-		if charf=59
-			charf-=128
-		if charl=59
-			charl-=128	
 		
-		if charf<charl
-			Return -1
-		if charf>charl
-			Return 1
+		; No sort	
+		if charf!=charl
+		;		if charf=ord("'")  and dbg=1 
+		;			Msgbox(0)
+				Return 0
 	}
-	Return 0
 }
 
 ; If Songtable is empty it will generate it
 GenerateSongTable()
 {
 	global songsdbmem := []
-	static SongsDB := sort(sort(FileRead("SongList.db")),,functionsort)
-	;static SongsDB := sort(FileRead("SongList.db"),,functionsort)
+	static SongsDB := sort(sort(FileRead("SongList.db")),,FunctionSort)
 	loop parse SongsDB, "`n"
 	{
+		songid := CreateID(A_Loopfield)
 		song_data := strsplit(A_Loopfield, ";")
 		if song_data.length=0
 			break
 		sd_index:=3
-		lp_index:=A_Index
 		for k in [4,5,6,8]
 		{
 			for d in ["NM","HD","MX","SC"]
 			{
-			if !RetrieveChartFromExludeDb(lp_index,k,d)
+			if !RetrieveChartFromExludeDb(songid,k,d)
 				song_data[sd_index]:=-1
 			sd_index++
 			}
 		}
-		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], A_Index))
+		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], songid, A_Index))
 ;		if A_Index = 432
 ;			MsgBox(song_data[1] " " song_data[15] "," song_data[16] "," song_data[17] "," song_data[18])
 	}
@@ -532,9 +599,20 @@ GenerateSongTable()
 ;Called when Edit menu is closed. Enables/Disables checkboxes
 ModifySettings(*)
 {
+	skip:=0
+	;dlc is the value of the checkbox in submenu
 	for dlc in dlcpacks
 	{
-		element := (A_Index<=maindlccount ? A_Index+3 : songpacks.length)
+		;checks for maindlc, cm and cv. If more songpacks get added, the checkbox is not properly grayed out. Fix it here!
+		;currently there are 6 songpacks for cm, so A_Index<=maindlccount+6 is the check for it
+		element := (A_Index<=maindlccount ? A_Index+4 : (A_Index<=musicdlccount ? songpacks.length-1: songpacks.length))
+		;
+		
+		if skip=1 and element<musicdlccount
+			continue
+		;if dlc.value=1
+		;	Msgbox(dlc.value "," dlc.text "," element )
+		;
 		if dlc.value=0
 		{
 			songpacks[element].value:=0
@@ -542,10 +620,18 @@ ModifySettings(*)
 		}
 		else
 		{
+		;Msgbox("Else: " element "," songpacks.length ", sp_old" songpacks[element].value)
 			songpacks[element].value:=1
 			songpacks[element].enabled:=1
+			;fix for CV
 			if element=songpacks.length
 				break
+			;fix for CM
+			if element=songpacks.length-1 and element<=musicdlccount
+			{
+				skip:=1 
+				continue
+			}
 		}
 	}
 	Checkfilter()
@@ -572,32 +658,27 @@ SaveAndExit(*)
 		iniwrite(ArrToStr(songpacks),"DJMaxRandomizer.ini", "packs_selected", "packs")
 	if settings[9]!=ArrToStr(dlcpacks,1,maindlccount)
 		iniwrite(ArrToStr(dlcpacks,1,maindlccount),"DJMaxRandomizer.ini", "dlc_owned", "main")
-	if settings[10]!=ArrToStr(dlcpacks,maindlccount+1)
-		iniwrite(ArrToStr(dlcpacks,maindlccount+1),"DJMaxRandomizer.ini", "dlc_owned", "coll")
+	if settings[10]!=ArrToStr(dlcpacks,maindlccount+1,musicdlccount)
+		iniwrite(ArrToStr(dlcpacks,maindlccount+1,musicdlccount),"DJMaxRandomizer.ini", "dlc_owned", "collmus")
+	if settings[11]!=ArrToStr(dlcpacks,musicdlccount+1,dlcpacks.length)
+		iniwrite(ArrToStr(dlcpacks,musicdlccount+1,dlcpacks.length),"DJMaxRandomizer.ini", "dlc_owned", "collvar")
 	filedb:=fileopen("DJMaxExcludeCharts.db","w")
-	global excludedbstring:=strsplit(excludedbstring)
-	for chartdata in excludedb
+	global excludedb
+	for id, data in excludedb
 	{
-		chartdata := Format("0x{:04x}", chartdata)
-			if A_Index>excludedbstring.length or chartdata != excludedbstring[A_Index]
-			{
-				filedb.pos:=7*(A_Index-1)
-				filedb.write(chartdata . "`n")
-			}
+				filedb.pos:=16*(A_Index-1)
+				filedb.write(id . ";" . Format("0x{:04x}", data) . "`n")
 	}
 	filedb.close()
+	if globwparam
+		Close_Connection(globwparam)
 	ExitApp
 }
 
 ;Sets difficulty boundaries and disables checkboxes according to slider value
-;Min/MaxArray are fixed values for min/max difficulty on each mode: 
-;e.g. 9 is the highest minimum '*'-count for 4k&5k NM
-;e.g. 7 is the lowest maximum '*'-count for 5k&6k&7k MX
-;New: Min/MaxArrays are dynamically adjusted depending on selected SongPacks.
+;Min/MaxArray are dynamically adjusted values for min/max difficulty on each mode depending on selected song pack: 
 SetMinMaxBoundaries()
 {	
-	;static minarray := [[9,9,11,12],[13,13,14,14],[15,15,15,15],[15,15,15,15]]
-	;static maxarray := [[1,1,1,1],[3,4,4,3],[6,7,7,7],[10,10,12,10]]
 	global minarray,maxarray
 	indexkdisable:=fillarr(4,0)
 	safetykmode:=4
@@ -630,6 +711,36 @@ SetMinMaxBoundaries()
 			kmode[A_Index].enabled:=0
 		else
 			kmode[A_Index].enabled:=1
+}
+
+ToggleMainDLCSongPacks(*)
+{
+	;Msgbox(songpacktoggle.value)
+	for packs in dlcpacks
+	{
+		;Msgbox(packs.value "," mlimit "," maindlccount)
+		if packs.enabled=1 and A_index<=maindlccount
+			if dlcpacktoggle.value=1
+				packs.value:=1
+			else
+				packs.value:=0
+	}
+	Checkfilter()
+}
+
+ToggleCollSongPacks(*)
+{
+	for packs in dlcpacks
+	{
+		if A_Index<=maindlccount
+			continue
+		if packs.enabled=1
+			if collabpacktoggle.value=1
+				packs.value:=1
+			else
+				packs.value:=0
+	}
+	Checkfilter()
 }
 
 ToggleAllSongPacks(*)
@@ -730,7 +841,7 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 						color:="FF00FF"
 				}
 		}
-	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and CheckSongPack(songsdbmem[songnumber].sg) and songsdbmem[songnumber].order>-1 and RetrieveChartFromExludeDb(songnumber, kmodnum, songdif) ;and songnumber>0 and songnumber<3
+	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and CheckSongPack(songsdbmem[songnumber].sg) and songsdbmem[songnumber].order>-1 and RetrieveChartFromExludeDb(songsdbmem[songnumber].id, kmodnum, songdif) ;and songnumber>0 and songnumber<3
 	guisongname.Text:=songsdbmem[songnumber].Name
 	guikmode.Text:=kmodnum . "K"
 	guidiff.SetFont("W700 C" . color)
@@ -755,10 +866,13 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 		else 
 			guistarsp.Text:=guistarsp.Text . "★"
 	}
-global songnum:=songnumber, kmod:=kmodnum, songd:=songdif
+global kmod:=kmodnum, songd:=songdif, songid:=songsdbmem[songnumber].id
 excludebox.enabled := 1
 excludebox.value:= 0
 excludebox.visible := 1
+;SendDataToStreamDeck()
+if globwparam
+		try Send_WM_Copydata(Songsdbmem[songnumber].Name . ";" . kmode . ";" . Songsdbmem[songnumber].%kmode%.%songdif% . ";" . songdif, globwparam)
 SelectSong(Songsdbmem[songnumber], kmode, songdif)
 }
 
@@ -784,7 +898,6 @@ SelectSong(song, kmode, songdif)
 	else
 		SendFunc(strlower(substr(song.name,1,1)), song.order)
 	oldletter:=strlower(substr(song.name,1,1))
-	;dMsgBox("Sent Input:" song.order "x " substr(song.name,1,1))
 	switch kmode
 	{
 		case "fourk":
@@ -805,8 +918,30 @@ SelectSong(song, kmode, songdif)
 	statusbar.SetText("Are you Ready? Never give up!")	
 }
 
+;// It does not work for real CRC32
+;// but the broken code should suffice for the purpose. 
+CreateId(str)
+{
+	str_hex := ""
+	loop parse str
+		str_hex .= Format("{1:x}", ord(A_Loopfield)>255?255:ord(A_Loopfield))
+	x := str_hex . 12345678
+	R := 0xFFFFFFFF
+		loop parse x
+		{
+			y := "0x" . A_Loopfield
+			Loop 4
+			{
+				R := (R << 1) ^ ((y << (A_Index+28)) & 0x10000000)
+				If R > 0xFFFFFFFF
+					R := R ^ 0x104C11DB7
+			}
+		}
+		
+	Return Format("{:08x}",R)
+}
+
 SendFunc(key, repeat:=1){
-	;global delaykeyinput
 	while (repeat-->0)
 	{
 		Send "{" . key . " down}"
@@ -814,4 +949,44 @@ SendFunc(key, repeat:=1){
 		Send "{" . key . " up}"
 		Sleep delaykeyinput.value
 	}
+}
+
+Send_WM_Copydata(str, phwnd)
+{  
+	
+    SizeInBytes := (StrLen(str)+1)*2
+	CopyDataStruct := Buffer(3*A_PtrSize)
+	NumPut( "Ptr", SizeInBytes, "Ptr", StrPtr(str), CopyDataStruct, A_PtrSize)
+	try
+		SendMessage(0x004a,0, CopyDataStruct,, "ahk_id" phwnd)
+	catch
+	{
+		if !A_IsAdmin
+		{
+			Msgbox("Sorry, we need admin rights to connect to StreamDeck AHK API.`nRestarting now.")
+			if A_IsCompiled
+				Run ('*RunAs "' A_ScriptDir . "\DJMaxRandomizer.exe" '"' " /restart " phwnd)
+			else
+				Run ('*RunAs "' A_ScriptDir . "\AutoHotkey64.exe" '"' " /restart DJMaxRandomizer.ahk " phwnd)
+		}
+		global globwparam:=""
+	}
+}
+
+Receive_Connection_Data(wParam,*)
+{
+	statusbar.SetText("Connection to StreamDeck established!")
+	if globwparam and globwparam!=wParam
+	{
+		Close_Connection(globwparam)
+		statusbar.SetText("Connection to StreamDeck reestablished!")
+	}
+	global globwparam:=wParam
+}
+
+Close_Connection(wParam)
+{
+	try
+		Send_WM_Copydata(";;;;Destroy", wParam)
+	statusbar.SetText("Connection to StreamDeck closed!")
 }
