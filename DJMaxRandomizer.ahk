@@ -33,9 +33,9 @@
 
 
 ; Variable initialization
-#NoTrayIcon
+;#NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.0.241119"
+Version:="2.0.241119a"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
 
 
@@ -541,31 +541,33 @@ FunctionSort(first,last,*)
 		;	Msgbox(first ":`n" charf " : " chr(charf) "`n" last "`n" charl " : " chr(charl))
 		; moves pos down
 		if ((charf!=59 and charl=59)
-		or (charf=45 and charl<=78)
+		or (charf=58 and charl=45)  ; NB Ranger
+		or (charf=73 and charl=45) ; Zeroize/Zero-Break ok
 		or (charf=39 and charl=82)  ; fixing "Misty Er'a" against "Misty E'ra 'MUI'"
-		or (charf=73 and charl=45)) ; Zeroize/Zero-Break
+		or (charf=45 and charl=78)) ; fixing U-Nivus
+		
 		;if charl=ord("'") and dbg=1
 		;	Msgbox(1)
 			Return 1
 		
 		;moves position up
 		if ((charl!=59 and charf=59)
-		or (charl=45 and charf<=78)
+		or (charl=45 and charf=68)  ; Fixes Para[d]ise against Para[-]Q
 		or (charl=39 and charf=68) ; Fixes "Won't back down" against "Wonder Slot" 
 		or (charl=39 and charf=65) ; Fix for We're All gonna die" against "WEA"
 		or (charl=39 and charf=73) ; Fix for We're All gonna die" against "WEI"
 		or (charl=39 and charf=76) ; Fix for We're All gonna die" against "WEL" 
-		or (charl=50 and charf=126)
-		or (charl=108 and charf=80))
+		or (charl=50 and charf=126)) ; Fix for SuperSonice [~] Mr against SuperSonic [2]011 
+		;or (charl=108 and charf=80))
 			;if charl=ord("'") and dbg=1
 			;	Msgbox(-1)
 			Return -1
 		
 		; No sort	
 		if charf!=charl
-		;		if charf=ord("'")  and dbg=1 
-		;			Msgbox(0)
-				Return 0
+		;if charf=ord("'")  and dbg=1 
+		;	Msgbox(0)
+			Return 0
 	}
 }
 
