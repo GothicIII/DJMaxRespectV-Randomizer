@@ -1,5 +1,5 @@
 ;// Library to generate SongList.db
-;// Version 1.1.241101
+;// Version 1.3.241123
 ;// Prerequisites
 ;// 
 ;// SongNames.db - ';' seperated csv with song names and addon short name
@@ -12,13 +12,13 @@
 ;// 
 ;// Remarks:
 ;// Sorry, but all pixel positions are hardcoded for 2560x1440. DJMaxRespect V renders most things inside subpixels
-;// so it took a lot of time to find 'good' consistant pixels. If somebody knows the native resolution,let me know.
-;// This library is not able to fetch data consistantly so manual intervention is neccessary to produce all results.
+;// so it took a lot of time to find 'good' consistent pixels. If somebody knows the native resolution, let me know.
+;// This library is not able to fetch data consistently so manual intervention is neccessary to produce all results.
 ;// Do not forget to disable HDR! Everything above a bitdepth of 8 can't be detected, because there are no win32 functions to achieve this task.
 ;//
-
+cm_packs:= [ "CH", "CY", "DE", "EZ", "GC", "MD"]
+cv_packs:= [ "GG", "ET", "FA", "GF", "MA", "NE", "TK" ]
 refresh:=1 
-
 
 
 ; Chart data definition in memory
@@ -77,36 +77,6 @@ class Generate_Chart_Data_debug
 		this.sg := songgroup
 	}
 } 
-;// This static object needs to be regenerated everytime a song gets added. Use song-order-numbers.ps1 
-;// to generate those numbers from songnames.db. ToDo: Generate dynamically.
-Class song_order_numbers
-{
-	__New()
-	{
-	;//[currentline (always 1, but if detection fails, you can start from a later song by providing the songcount), beginning line in namesdb of that songpack, number of songs]
-this.re := [1,1,45]
-this.rv := [1,46,38]
-this.pone := [1,84,56]
-this.ptwo := [1,140,53]
-this.pthree := [1,193,24]
-this.tr := [1,217,21]
-this.cl := [1,238,25]
-this.bs := [1,263,22]
-this.vone := [1,285,20]
-this.vtwo := [1,305,21]
-this.vthree := [1,326,20]
-this.vfour := [1,346,21]
-this.vfive := [1,367,20]
-this.vlib := [1,387,20]
-this.es := [1,407,8]
-this.tone := [1,415,22]
-this.ttwo := [1,437,24]
-this.tthree := [1,461,30]
-this.tq := [1,491,20]
-this.cm := [1,511,71]
-this.cv := [1,582,69]
-	}
-}
 
 ;//Writes Songlist.db
 AppendSongData(songobject){
@@ -168,7 +138,7 @@ CreateDiffArray(buttoncolor, TTwo)
 		}
 		else
 		{
-			;/ Testing!!!!
+			;/ Testing!!!! Creates wrong data
 			if curdiff=133 and PixelGetColor(133,667)!="0x13291B" 
 				Msgbox("NM not found! Try again?`nNeed: " buttoncolor "`nFound: " PixelGetColor(133,667))
 			diff_arr.push(0)
@@ -177,61 +147,59 @@ CreateDiffArray(buttoncolor, TTwo)
 	Return diff_arr
 }
 
+; Generates songpack bounderies by parsing songname db. 
+; Bounderies for CM/CV are taken from global cm/cv_packs[].
+Class Song_Order_Numbers_New
+{
+	__New(dbg:=0)
+	{
+		SongNamesDb := FileRead("DJMaxSongNames.db")
+		global cm_packs, cv_packs
+		gp_last:="RE"
+		gp_cnt:=0
+		loop parse SongNamesDb, "`n"
+		{
+			gp_cur := substr(A_Loopfield,-2,2)
+			for cm in cm_packs
+				if cm = gp_cur
+					gp_cur:="CM"
+			
+			for cv in cv_packs
+				if cv = gp_cur
+					gp_cur:="CV"
+			if gp_last!=gp_cur
+			{	
+				this.%gp_last%:= [ 1, A_Index-gp_cnt, gp_cnt ]
+				gp_cnt:=0
+				gp_last:=gp_cur
+			}
+			gp_cnt++
+		}
+		if dbg=1
+		{
+			dbgstr:=""
+			for sg in this.OwnProps()
+				for idx in this.%sg%	
+					if A_index>1 and A_index<3
+						dbgstr .= idx . ", "
+					else if A_Index>1
+						dbgstr .= idx . " : " . sg . "`n"
+		Msgbox("idx, cnt, pack`n" . sort(dbgstr,"N"))
+		}	
+	}
+}
+
 ;// Returns songname from SongNames.db by interpreting songgroup and song_order_numbers.
 ;// e.g. FetchSongname("RE") returns the first songname found in songnames.db
 ;// consecutive calls will return the 2nd, 3rd... songnames of that songname group
 FetchSongname(SongGroup)
 {
-	static SongNamesDb := FileRead("DJMax_SongNames.db")
-	static songorder:=song_order_numbers()
-	Switch SongGroup
-	{
-		Case "RE":
-			suffix:="re"
-		Case "RV":
-			suffix:="rv"
-		Case "P1":	
-			suffix:="pone"
-		Case "P2":
-			suffix:="ptwo"
-		Case "P3":
-			suffix:="pthree"
-		Case "TR":
-			suffix:="tr"
-		Case "CL":
-			suffix:="cl"
-		Case "BS":
-			suffix:="bs"
-		Case "V1":
-			suffix:="vone"
-		Case "V2":
-			suffix:="vtwo"
-		Case "V3":
-			suffix:="vthree"
-		Case "V4":
-			suffix:="vfour"
-		Case "V5":
-			suffix:="vfive"
-		Case "VL":
-			suffix:="vlib"	
-		Case "ES":
-			suffix:="es"
-		Case "T1":
-			suffix:="tone"
-		Case "T2":
-			suffix:="ttwo"
-		Case "T3":
-			suffix:="tthree"
-		Case "TQ":
-			suffix:="tq"
-		Case "CM":
-			suffix:="cm"
-		Case "CV":
-			suffix:="cv"
-	}
+	static SongNamesDb := FileRead("DJMaxSongNames.db")
+	static songorder:=Song_Order_Numbers_New()
 	
+
 	;//deprecated
-	;if songorder.%suffix%[3]=songorder.%suffix%[1]
+	;if songorder.%SongGroup%[3]=songorder.%SongGroup%[1]
 	;	{
 	;	WinActivate("ahk_exe DJMax Respect V.exe")
 	;	Send "{RShift down}" 
@@ -245,6 +213,7 @@ FetchSongname(SongGroup)
 	;		Send "{Down Up}"
 	;	}
 	;	
+		WinActivate("ahk_exe DJMax Respect V.exe")
 		Send "{Down Down}"
 		Sleep 25
 		Send "{Down Up}"
@@ -252,24 +221,27 @@ FetchSongname(SongGroup)
 		if pixelgetcolor(133,667)="0x13291B"	
 		{
 			Msgbox("Random reached! Changing section...","Information","T2")
+			WinActivate("ahk_exe DJMax Respect V.exe")
 			Send "{RShift down}" 
 			Sleep 50
 			Send "{RShift up}" 
 			Sleep 500
 		}
 		loop parse SongNamesDb, "`n"
-		if A_Index=songorder.%suffix%[2]+songorder.%suffix%[1]-1
+		if A_Index=songorder.%SongGroup%[2]+songorder.%SongGroup%[1]-1
 		{
-			songorder.%suffix%[1]++
-			Return [ substr(A_Loopfield,1,StrLen(A_Loopfield)-4), substr(A_Loopfield,-3,2) ]
+			songorder.%SongGroup%[1]++
+			Return [ substr(A_Loopfield,1,StrLen(A_Loopfield)-3), substr(A_Loopfield,-2,2) ]
 		}
 }
 
 ;// Main function. Collects all data and sends it for writing into songlist.db
 GetSongData(){
+	global globpause
 	WinActivate("ahk_exe DJMax Respect V.exe")
 	lastsonggroup:=songgroup:=""
-	while songgroup!="CM" or A_Index<=85 ;Number of collaboration songs
+	;while songgroup!="CM" or A_Index<=85 ;Number of collaboration songs
+	while songgroup!="FIN"
 	{
 		songgroup:=GetSongGroup()
 		if lastsonggroup!=songgroup
@@ -417,8 +389,81 @@ WinActivate("ahk_exe DJMax Respect V.exe")
 			Return "CM"
 		else 
 			Return "CV"
+	Case "0xFFAE00":
+		Return "FIN"
 	}
 		Return GetSongGroup()	
+}
+
+; currently not in use. Attempt to replace default sort function
+; Problems: Even after getting around the non-ascii-conform table, the songs need always somekind of exception. e.g. U-NIVUS or We're gonna die
+; Thats why legacy code will be used, because it is easier to implement changes on a per-song-basis.
+customsort(strf, strl, *)
+{
+	strf := substr(strf,1,strlen(strf)-4)
+	strl:= substr(strl,1,strlen(strl)-4)
+	loop parse strf
+	{
+		;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
+		charf:=ord(A_Loopfield), charl:=ord(substr(strl,A_Index,1))
+		;if strlen(strl)=A_Index
+		;	Return 1
+		;if charf=39
+		;	charf+=128
+		if charf=58
+			charf+=38
+		else if charf=59
+			charf-=128
+		else if charf>=97 and charf<123
+			charf-=32
+		else if charf=45
+			charf:=64		
+		else if charf=126
+			charf:=42
+		
+		if charl=58
+			charl+=38	
+		else if charl=59
+			charl-=128	
+		else if charl>=97 and charl<123
+			charl-=32
+		else if charl=45
+			charl:=64
+		else if charl=126
+			charl:=42
+		
+		if charf<charl
+			Return -1
+		if charf>charl
+			Return 1
+	}
+	Return 0
+}
+
+
+CreateSongNameDbFromSongList()
+{
+	try FileMove("DJMaxSongNames.db", "DJMaxSongNames_" . version . "_bak.db", 1) 
+	count:=0
+	loop Read "SongList.db","DJMaxSongNames.db"
+	{
+		loop parse A_Loopreadline, "`n"
+		{
+			str_arr := StrSplit(A_Loopreadline,";")
+			if str_arr.length>1
+				FileAppend(str_arr[1] . ";" str_arr[2] . "`n")
+			count++
+		}
+	}
+	Msgbox("File generation complete!`n Wrote " count " lines")
+}
+
+ListSongPacks()
+{
+		dbgname:=""
+	for names in songpacks
+		dbgname.= names.text ":" names.value ":" A_Index "/" songpacks.length . "`n"
+	Msgbox(dbgname)
 }
 
 GetSongGroupColor(){
