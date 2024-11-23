@@ -9,6 +9,7 @@
 ; Main header for debug/recording functions
 ;#include DJMax_Detection.h
 
+
 ; Start detecting song Data from current selected songpack tab (not all songs tab!). Writes to SongList.db.
 ;Numpad1::GetSongData()
 ;
@@ -33,9 +34,9 @@
 
 
 ; Variable initialization
-;#NoTrayIcon
+#NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.0.241119a"
+Version:="2.0.241122b"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
 
 
@@ -232,12 +233,19 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 	
 	if A_Args.length>0
 		Receive_Connection_Data(A_Args[1])
-	
+	NumpadAdd::{
+		Try WinMinimize("ahk_exe DJMax Respect V.exe")
+		WinGetPos(&x, &y,,,"DJMax Respect V Freeplay")
+		CoordMode "Mouse","Screen"
+		MouseMove(x+100,y+150)
+		WinActivate("DJMax Respect V Freeplay")
+	}
+	+F2::CacheSongSelection()
 	F2::try RollSong(songpacks, kmode, diffmode, mindiff, maxdiff)
 	F4::
 	{
-	if excludebox.Enabled=1
-		ExcludeChart(songid, kmod, songd)
+		if excludebox.Enabled=1
+			ExcludeChart(songid, kmod, songd)
 	}
 
 ; Chart data definition in memory
@@ -370,6 +378,8 @@ ExcludeChart(songid, kmod, songd)
 	excludedb.Set(songid, (excludedb.Has(songid)?excludedb.Get(songid):0)+(0x1<<dshift) << kshift)
 	excludebox.value := 1
 	excludebox.enabled := 0
+	try
+		Send_WM_Copydata(";" . kmod . "k;;;\n✓", globwparam)
 }
 
 RetrieveChartFromExludeDb(songid, kmod, songd)
@@ -534,18 +544,20 @@ FunctionSort(first,last,*)
 	}
 	else
 		first := strupper(first), last:=strupper(last)
+	; Needed for Misty E'ra vs O'men
+		firstsp:=StrSplit(first,";",,3)
 	
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))  
-		;if charl=ord("'") and dbg=1
 		;	Msgbox(first ":`n" charf " : " chr(charf) "`n" last "`n" charl " : " chr(charl))
 		; moves pos down
 		if ((charf!=59 and charl=59)
-		or (charf=58 and charl=45)  ; NB Ranger
-		or (charf=73 and charl=45) ; Zeroize/Zero-Break ok
-		or (charf=39 and charl=82)  ; fixing "Misty Er'a" against "Misty E'ra 'MUI'"
-		or (charf=45 and charl=78)) ; fixing U-Nivus
+		or (charf=58 and charl=45)  						; NB Ranger
+		or (charf=73 and charl=45) 						; Zeroize/Zero-Break ok
+		or (charf=39 and charl=76)							; fixing ;O[']men vs 
+		or (charf=39 and charl=82 and firstsp[2]="V3")	; fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
+		or (charf=45 and charl=78)) 						; fixing U-Nivus
 		
 		;if charl=ord("'") and dbg=1
 		;	Msgbox(1)
@@ -557,7 +569,7 @@ FunctionSort(first,last,*)
 		or (charl=39 and charf=68) ; Fixes "Won't back down" against "Wonder Slot" 
 		or (charl=39 and charf=65) ; Fix for We're All gonna die" against "WEA"
 		or (charl=39 and charf=73) ; Fix for We're All gonna die" against "WEI"
-		or (charl=39 and charf=76) ; Fix for We're All gonna die" against "WEL" 
+		or (charl=39 and charf=76) ; Fix for We're All gonna die" against "WEL"
 		or (charl=50 and charf=126)) ; Fix for SuperSonice [~] Mr against SuperSonic [2]011 
 		;or (charl=108 and charf=80))
 			;if charl=ord("'") and dbg=1
@@ -876,8 +888,20 @@ excludebox.visible := 1
 ;SendDataToStreamDeck()
 if globwparam
 		try Send_WM_Copydata(Songsdbmem[songnumber].Name . ";" . kmode . ";" . Songsdbmem[songnumber].%kmode%.%songdif% . ";" . songdif, globwparam)
+
 SelectSong(Songsdbmem[songnumber], kmode, songdif)
+CacheSongSelection(Songsdbmem[songnumber], kmode, songdif, 0)
 }
+
+CacheSongSelection(song:=0, kmode:=0, songdif:=0, run:=1)
+{
+	static sg, km, sd
+	if song and kmode and songdif
+		sg:=song, km:=kmode, sd:=songdif
+	if run and sg and km and sd
+		SelectSong(sg, km, sd)
+}
+
 
 ; Sends Input to game
 SelectSong(song, kmode, songdif)
@@ -947,6 +971,9 @@ CreateId(str)
 SendFunc(key, repeat:=1){
 	while (repeat-->0)
 	{
+		; Test for better diff accuracy
+		If key="right"
+			Sleep delaykeyinput.value
 		Send "{" . key . " down}"
 		Sleep delaykeyinput.value
 		Send "{" . key . " up}"
