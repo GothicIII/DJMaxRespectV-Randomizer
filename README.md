@@ -37,6 +37,17 @@
   ### Method C (Trust):
     If you trust a random stranger on the internet ( Me :) ) you can just download the precompiled
     Executable and database directly from the release tab. No further downloads necessary.
+
+## KEY FEATURES:
+  - Extended Filter Options for
+      Songpacks, K-Modes, Chart Difficulty and Star range.
+  - Change Keydelay if selected songs are off and don't reflect the rolled song.
+  - Exclude charts if you don't need them with F4. Database is updated on program exit.
+  - Full Stream Deck support (contact me for details).
+      It shows all rolled song data including stars and if the chart will be excluded.
+  - Numpad(+) will bring up the randomizer in foreground to adjust settings.
+  - CTRL+F2 will reroll the current rolled song in case the game glitches/brings up the new menu etc...
+  - Pressing F2 will roll the song and bring it up in the game.
   
 ## USAGE:
   Run the game and enter Freestyle-Mode. Make sure 'All Tracks' tab is selected.
@@ -50,9 +61,8 @@
   
  ## SCREENSHOTS:
  
- ![grafik](https://user-images.githubusercontent.com/10393365/172835316-a351f3e2-7885-4b57-be03-64cfb5946546.png)
-![grafik](https://user-images.githubusercontent.com/10393365/172835336-07045804-4594-4339-a4f2-211109b2bb59.png)
-![grafik](https://user-images.githubusercontent.com/10393365/172835383-b957747f-e469-4062-89ad-c4207f946e33.png)
-
+![grafik](https://github.com/user-attachments/assets/ab34e4b0-0bc5-4e41-b8c6-9dc1f715aa70)
+![grafik](https://github.com/user-attachments/assets/ce2977d4-ab51-4942-b1f2-1882cdf9490c)
+![grafik](https://github.com/user-attachments/assets/edb9144a-8c55-4935-ad9f-9aefdc0cf505)
 
   
