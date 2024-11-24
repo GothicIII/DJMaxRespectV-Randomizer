@@ -909,7 +909,7 @@ SelectSong(song, kmode, songdif)
 	SendFunc("PgUp")
 	statusbar.SetText("Sending Input..." song.order "x " substr(song.name,1,1))	
 	;In future need to implement song.order for # and !@#-Groups
-	if ord(strupper(song.name))-65 < 1 
+	if ord(strupper(song.name))-64 < 1 
 	{
 		SendFunc("Z")
 		SendFunc("PgDn")
