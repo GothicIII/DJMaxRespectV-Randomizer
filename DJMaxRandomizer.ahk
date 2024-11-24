@@ -31,14 +31,11 @@
 ;Numpad9::Song_Order_Numbers_New(1)
 ;try (FileDelete("InternalDB.db"))
 
-
-
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.0.241122b"
+Version:="2.0.241122c"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
-
 
 ; Create new settings file if it is missing
 try 
@@ -164,7 +161,6 @@ guistarsp	:= DJMaxGui.Add("Text", "x+ yp w34 hp"," ")
 statusbar := DJMaxGui.Add("StatusBar",, "")
 statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 
-
 ; Retrieve settings and set them
 	settings.push(Iniread("DJMaxRandomizer.ini", "config", "min"))
 	settings.push(Iniread("DJMaxRandomizer.ini", "config", "max"))
@@ -218,15 +214,14 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 
 	; prefill with data.
 	excludedb := Map()
-	try
-		loop read, "DJMaxExcludeCharts.db", "`n"	
-		{
-			exclude_data := strsplit(A_LoopReadLine,";")
+	try loop read, "DJMaxExcludeCharts.db", "`n"	
+	{
+		exclude_data := strsplit(A_LoopReadLine,";")
+		if exclude_data.Has(2)
 			excludedb.Set(exclude_data[1], exclude_data[2])
-		}
+	}
 	catch 
-		Msgbox("Could not open DJMaxExcludeCharts.db!`nA new file will be created.",,"T2")
-	
+		Msgbox("DJMaxExcludeCharts.db has errors/does not exist!`nA new file will be created.",,"T2")
 	; Draw GUI
 	UpdateSlider()
 	DJMaxGui.Show((winposx="null" ? "" : "x" . winposx . "y" winposy))
@@ -240,7 +235,7 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 		MouseMove(x+100,y+150)
 		WinActivate("DJMax Respect V Freeplay")
 	}
-	+F2::CacheSongSelection()
+	^F2::CacheSongSelection()
 	F2::try RollSong(songpacks, kmode, diffmode, mindiff, maxdiff)
 	F4::
 	{
@@ -362,7 +357,7 @@ CheckFilter()
 
 ExcludeChart(songid, kmod, songd)
 {
-	hellodb:=Map()
+	global exludedb
 	kshift:=((kmod-4)*4<12 ? (kmod-4)*4 : 12)
 	Switch songd
 	{
@@ -375,13 +370,13 @@ ExcludeChart(songid, kmod, songd)
 		Case "SC":
 			dshift:=3
 	}
-	excludedb.Set(songid, (excludedb.Has(songid)?excludedb.Get(songid):0)+(0x1<<dshift) << kshift)
+	excludedb.Set(songid, (excludedb.Has(songid)?excludedb.Get(songid):0) + (0x1<<dshift) << kshift)
 	excludebox.value := 1
 	excludebox.enabled := 0
-	try
+	if globwparam
 		Send_WM_Copydata(";" . kmod . "k;;;\n✓", globwparam)
 }
-
+ 
 RetrieveChartFromExludeDb(songid, kmod, songd)
 {
 	global excludedb
@@ -397,7 +392,7 @@ RetrieveChartFromExludeDb(songid, kmod, songd)
 		Case "SC":
 			dshift:=3
 	}
-	Return !((excludedb.Has(songid)?excludedb.Get(songid):0>>kshift & 0xF)>>dshift & 0x1)
+	Return !(((excludedb.Has(songid)?excludedb.Get(songid):0)>>kshift & 0xF)>>dshift & 0x1)
 }
 
 ;Helper function to get value in dlcpack/songpack Array from songgroup String
@@ -592,6 +587,7 @@ GenerateSongTable()
 	loop parse SongsDB, "`n"
 	{
 		songid := CreateID(A_Loopfield)
+		;FileAppend(songid . ";" . A_Loopfield . "`n","SongIds.db")
 		song_data := strsplit(A_Loopfield, ";")
 		if song_data.length=0
 			break
@@ -681,8 +677,8 @@ SaveAndExit(*)
 	global excludedb
 	for id, data in excludedb
 	{
-				filedb.pos:=16*(A_Index-1)
-				filedb.write(id . ";" . Format("0x{:04x}", data) . "`n")
+		filedb.pos:=13*(A_Index-1)
+		filedb.write(id . ";" . Format("0x{:04x}", data) . "`n")
 	}
 	filedb.close()
 	if globwparam
@@ -791,7 +787,6 @@ UpdateSlider(slider:=0)
 	}
 	CheckFilter()
 }
-
 
 CheckSongPack(sg)
 {
@@ -902,7 +897,6 @@ CacheSongSelection(song:=0, kmode:=0, songdif:=0, run:=1)
 		SelectSong(sg, km, sd)
 }
 
-
 ; Sends Input to game
 SelectSong(song, kmode, songdif)
 {
@@ -915,12 +909,11 @@ SelectSong(song, kmode, songdif)
 	SendFunc("PgUp")
 	statusbar.SetText("Sending Input..." song.order "x " substr(song.name,1,1))	
 	;In future need to implement song.order for # and !@#-Groups
-	if ord(strupper(song.name))-64 < 1 
+	if ord(strupper(song.name))-65 < 1 
 	{
-		SendFunc("a")
-		SendFunc("PgUp")
-		if song.order=1
-			SendFunc("PgUp")
+		SendFunc("Z")
+		SendFunc("PgDn")
+		SendFunc("down", song.order-1)
 	}
 	else
 		SendFunc(strlower(substr(song.name,1,1)), song.order)
@@ -945,27 +938,12 @@ SelectSong(song, kmode, songdif)
 	statusbar.SetText("Are you Ready? Never give up!")	
 }
 
-;// It does not work for real CRC32
-;// but the broken code should suffice for the purpose. 
-CreateId(str)
+CreateID(str)
 {
-	str_hex := ""
+	str_sum:=0
 	loop parse str
-		str_hex .= Format("{1:x}", ord(A_Loopfield)>255?255:ord(A_Loopfield))
-	x := str_hex . 12345678
-	R := 0xFFFFFFFF
-		loop parse x
-		{
-			y := "0x" . A_Loopfield
-			Loop 4
-			{
-				R := (R << 1) ^ ((y << (A_Index+28)) & 0x10000000)
-				If R > 0xFFFFFFFF
-					R := R ^ 0x104C11DB7
-			}
-		}
-		
-	Return Format("{:08x}",R)
+		str_sum += "0x" . Format("{1:x}", ord(A_Loopfield)>255?255:ord(A_Loopfield))
+	Return Format("{:05x}",str_sum)
 }
 
 SendFunc(key, repeat:=1){
@@ -983,7 +961,6 @@ SendFunc(key, repeat:=1){
 
 Send_WM_Copydata(str, phwnd)
 {  
-	
     SizeInBytes := (StrLen(str)+1)*2
 	CopyDataStruct := Buffer(3*A_PtrSize)
 	NumPut( "Ptr", SizeInBytes, "Ptr", StrPtr(str), CopyDataStruct, A_PtrSize)
@@ -1016,7 +993,6 @@ Receive_Connection_Data(wParam,*)
 
 Close_Connection(wParam)
 {
-	try
-		Send_WM_Copydata(";;;;Destroy", wParam)
+	try Send_WM_Copydata(";;;;Destroy", wParam)
 	statusbar.SetText("Connection to StreamDeck closed!")
 }
