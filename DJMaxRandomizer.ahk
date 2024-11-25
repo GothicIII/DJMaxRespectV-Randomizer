@@ -1,7 +1,5 @@
 ;DJMax Respect V Randomizer
 ;Provided to you by GothicIII
-
-
 ;Changelog since last release:
 ; - Optimized config generation and variable initialization (Running for the 1st time disables all DLC packs properly)
 
@@ -34,7 +32,7 @@
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.0.241122c"
+Version:="2.0.241122d"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
 
 ; Create new settings file if it is missing
@@ -221,7 +219,10 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 			excludedb.Set(exclude_data[1], exclude_data[2])
 	}
 	catch 
+	{
 		Msgbox("DJMaxExcludeCharts.db has errors/does not exist!`nA new file will be created.",,"T2")
+		try FileMove("DJMaxExcludeCharts.db", "DJMaxExcludeCharts_" . version . "_bak.db", 1) 
+	}
 	; Draw GUI
 	UpdateSlider()
 	DJMaxGui.Show((winposx="null" ? "" : "x" . winposx . "y" winposy))
@@ -500,14 +501,14 @@ DebugFunc(name, order, songpack)
 		static orderstr:=""
 		if order=1 and orderstr!=""
 		{
-			FileAppend(orderstr, "InternalDB.db")
+			FileAppend(orderstr, "InternalDB.db","UTF-8")
 			;MsgBox(orderstr)
 			orderstr:=""	
 		}
 		orderstr := orderstr . name . "," . order . "," . songpack . "`n"
 		if order=5 and substr(name,1,1)="Z"
 		{
-			FileAppend(orderstr, "InternalDB.db")
+			FileAppend(orderstr, "InternalDB.db","UTF-8")
 			;MsgBox(orderstr)
 			ExitApp(0)
 		}
@@ -523,24 +524,16 @@ DebugFunc(name, order, songpack)
 	; U-nivius
 FunctionSort(first,last,*)
 {
+	;panic:=strsplit(first,";")
+	;if substr(first,1,4)="Love" and substr(panic[1],-5)="Panic"
+	;	Msgbox(first "`n" strlen(panic[1]) "`n" ord(substr(panic[1],5,1)))
 	;dbg:=0
 	;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
-	
-	; "We're gonna die"-exception. Goes against "'" rule. Comes always last.
-	; ToDo
 
-	;Upper first 4 letters since LovePanic comes before Lovely Hands.
-	;Eexceptions for LovePanic/Lovely hands
-	;Else alone breaks Supersonic and NB Ranger songs
-	if (substr(first,1,4)=="Love" and substr(last,1,4)=="Love")
-	{
-		first := strupper(substr(first,1,4)) . substr(first,5,strlen(first)-4)
-		last:= strupper(substr(last,1,4)) . substr(last,5,strlen(last)-4)
-	}
-	else
-		first := strupper(first), last:=strupper(last)
+	first := strupper(first), last:=strupper(last)
+	
 	; Needed for Misty E'ra vs O'men
-		firstsp:=StrSplit(first,";",,3)
+	firstsp:=StrSplit(first,";",,3)
 	
 	loop parse first
 	{
@@ -553,28 +546,27 @@ FunctionSort(first,last,*)
 		or (charf=39 and charl=76)							; fixing ;O[']men vs 
 		or (charf=39 and charl=82 and firstsp[2]="V3")	; fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
 		or (charf=45 and charl=78)) 						; fixing U-Nivus
-		
-		;if charl=ord("'") and dbg=1
-		;	Msgbox(1)
+			;if charl=ord("'") and dbg=1
+			;	Msgbox(1)
 			Return 1
 		
 		;moves position up
 		if ((charl!=59 and charf=59)
+		or ((charl=76 or charl=82) and charf=9734) ; fixes Love☆Panic
 		or (charl=45 and charf=68)  ; Fixes Para[d]ise against Para[-]Q
 		or (charl=39 and charf=68) ; Fixes "Won't back down" against "Wonder Slot" 
 		or (charl=39 and charf=65) ; Fix for We're All gonna die" against "WEA"
 		or (charl=39 and charf=73) ; Fix for We're All gonna die" against "WEI"
 		or (charl=39 and charf=76) ; Fix for We're All gonna die" against "WEL"
 		or (charl=50 and charf=126)) ; Fix for SuperSonice [~] Mr against SuperSonic [2]011 
-		;or (charl=108 and charf=80))
 			;if charl=ord("'") and dbg=1
 			;	Msgbox(-1)
 			Return -1
 		
 		; No sort	
 		if charf!=charl
-		;if charf=ord("'")  and dbg=1 
-		;	Msgbox(0)
+			;if charf=ord("'")  and dbg=1 
+			;	Msgbox(0)
 			Return 0
 	}
 }
@@ -583,7 +575,7 @@ FunctionSort(first,last,*)
 GenerateSongTable()
 {
 	global songsdbmem := []
-	static SongsDB := sort(sort(FileRead("SongList.db")),,FunctionSort)
+	static SongsDB := sort(sort(FileRead("SongList.db","UTF-8")),,FunctionSort)
 	loop parse SongsDB, "`n"
 	{
 		songid := CreateID(A_Loopfield)
