@@ -32,7 +32,7 @@
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.0.241122d"
+Version:="2.0.241128f"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
 
 ; Create new settings file if it is missing
@@ -154,8 +154,7 @@ guidiff 		:= DJMaxGui.Add("Text", "x+ w30"," ")
 excludebox.visible := 0, excludebox.Enabled:=0
 guistarsy 	:= DJMaxGui.Add("Text", "xs y+ w90 h30"," ")
 guistarso	:= DJMaxGui.Add("Text", "x+ yp wp hp"," ")
-guistarsr	:= DJMaxGui.Add("Text", "x+ yp w54 hp"," ")
-guistarsp	:= DJMaxGui.Add("Text", "x+ yp w34 hp"," ")
+guistarsr	:= DJMaxGui.Add("Text", "x+ yp wp hp"," ")
 statusbar := DJMaxGui.Add("StatusBar",, "")
 statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 
@@ -216,6 +215,8 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 	{
 		exclude_data := strsplit(A_LoopReadLine,";")
 		if exclude_data.Has(2)
+			if not exclude_data[2]<=0xFFFF
+				throw Error()
 			excludedb.Set(exclude_data[1], exclude_data[2])
 	}
 	catch 
@@ -281,6 +282,7 @@ class Generate_Chart_Data
 			this.sixk.%f% := sixkdata[A_Index]
 			this.eightk.%f% := eightkdata[A_Index]
 		}
+		
 		this.sg := songgroup
 		;Msgbox(this.name " " esg ":" esg>>1)
 		if esg>>1=2
@@ -359,19 +361,19 @@ CheckFilter()
 ExcludeChart(songid, kmod, songd)
 {
 	global exludedb
-	kshift:=((kmod-4)*4<12 ? (kmod-4)*4 : 12)
+	kshift:=((kmod-0x4)*0x4<0xC ? (kmod-0x4)*0x4 : 0xC)
 	Switch songd
 	{
 		Case "NM":
-			dshift:=0
+			dshift:=0x0
 		Case "HD":
-			dshift:=1
+			dshift:=0x1
 		Case "MX":
-			dshift:=2
+			dshift:=0x2
 		Case "SC":
-			dshift:=3
+			dshift:=0x3
 	}
-	excludedb.Set(songid, (excludedb.Has(songid)?excludedb.Get(songid):0) + (0x1<<dshift) << kshift)
+	excludedb.Set(songid, (excludedb.Has(songid)?excludedb.Get(songid):0x0) + ((0x1<<dshift) << kshift))
 	excludebox.value := 1
 	excludebox.enabled := 0
 	if globwparam
@@ -381,19 +383,19 @@ ExcludeChart(songid, kmod, songd)
 RetrieveChartFromExludeDb(songid, kmod, songd)
 {
 	global excludedb
-	kshift:=((kmod-4)*4<12 ? (kmod-4)*4 : 12)
+	kshift:=((kmod-0x4)*0x4<0xC ? (kmod-0x4)*0x4 : 0xC)
 	Switch songd
 	{
 		Case "NM":
-			dshift:=0
+			dshift:=0x0
 		Case "HD":
-			dshift:=1
+			dshift:=0x1
 		Case "MX":
-			dshift:=2
+			dshift:=0x2
 		Case "SC":
-			dshift:=3
+			dshift:=0x3
 	}
-	Return !(((excludedb.Has(songid)?excludedb.Get(songid):0)>>kshift & 0xF)>>dshift & 0x1)
+	Return !(((excludedb.Has(songid)?excludedb.Get(songid):0x0)>>kshift & 0xF)>>dshift & 0x1)
 }
 
 ;Helper function to get value in dlcpack/songpack Array from songgroup String
@@ -519,7 +521,7 @@ DebugFunc(name, order, songpack)
 	; Problematic songs:
 	; Urban Night 2x
 	; A lie <-> A lie ~deep inside mix~
-	; I've got a feeling <-> I want you or IF
+	; I've got a feeling has now 1370 Unicode
 	; We're gonna die <-> welcome to the space
 	; U-nivius
 FunctionSort(first,last,*)
@@ -535,38 +537,37 @@ FunctionSort(first,last,*)
 	; Needed for Misty E'ra vs O'men
 	firstsp:=StrSplit(first,";",,3)
 	
+	;fixing Alone against Alone
+	if (substr(first,1,5)="ALONE" and substr(last,1,5)="ALONE")
+		or (substr(first,1,8)="SHOWDOWN" and substr(last,1,8)="SHOWDOWN")
+		Return -1
+	
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))  
-		;	Msgbox(first ":`n" charf " : " chr(charf) "`n" last "`n" charl " : " chr(charl))
-		; moves pos down
+		;if (substr(first,1,5)="I'M A" or substr(last,1,5)="I'M A") and (charf=39 or charl=39)
+		;	Msgbox(first "`n" last "`n" charf " vs " charl)
+
+		; moves charf pos down
 		if ((charf!=59 and charl=59)
-		or (charf=58 and charl=45)  						; NB Ranger
-		or (charf=73 and charl=45) 						; Zeroize/Zero-Break ok
+		or (charf=39 and charl=70 and firstsp[2]="RV")	; fixing I[']m Alive vs I[F]
 		or (charf=39 and charl=76)							; fixing ;O[']men vs 
 		or (charf=39 and charl=82 and firstsp[2]="V3")	; fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
 		or (charf=45 and charl=78)) 						; fixing U-Nivus
-			;if charl=ord("'") and dbg=1
-			;	Msgbox(1)
 			Return 1
-		
-		;moves position up
-		if ((charl!=59 and charf=59)
-		or ((charl=76 or charl=82) and charf=9734) ; fixes Love☆Panic
-		or (charl=45 and charf=68)  ; Fixes Para[d]ise against Para[-]Q
-		or (charl=39 and charf=68) ; Fixes "Won't back down" against "Wonder Slot" 
-		or (charl=39 and charf=65) ; Fix for We're All gonna die" against "WEA"
-		or (charl=39 and charf=73) ; Fix for We're All gonna die" against "WEI"
-		or (charl=39 and charf=76) ; Fix for We're All gonna die" against "WEL"
-		or (charl=50 and charf=126)) ; Fix for SuperSonice [~] Mr against SuperSonic [2]011 
-			;if charl=ord("'") and dbg=1
-			;	Msgbox(-1)
+
+		;moves charf position up
+		if ((charf=59 and charl!=59)
+		or ((charf=65 or charf=73 or charf=76) and charl=39) ; Fix for We're All gonna die" against "WEA/WEI/WEL"
+		or (charf=68 and charl=45)		; Fixes Para[d]ise against Para[-]Q
+		or (charf=68 and charl=39)		; Fixes "Won't back down" against "Wonder Slot" 
+		or (charf=75 and charl=39)		; Fixes I[k]azuchi vs I[']m Alive
+		or (charf=126 and charl=50)	; Fix for SuperSonic [~] Mr against SuperSonic [2]011 
+		or (charf=9734 and (charl=76 or charl=82))) ; fixes Love☆Panic
 			Return -1
 		
 		; No sort	
 		if charf!=charl
-			;if charf=ord("'")  and dbg=1 
-			;	Msgbox(0)
 			Return 0
 	}
 }
@@ -576,9 +577,14 @@ GenerateSongTable()
 {
 	global songsdbmem := []
 	static SongsDB := sort(sort(FileRead("SongList.db","UTF-8")),,FunctionSort)
+	;chartcount:=0
 	loop parse SongsDB, "`n"
 	{
 		songid := CreateID(A_Loopfield)
+		;line := StrSplit(A_Loopfield,";")
+		;for i in line
+		;	try if i>0
+		;		chartcount++
 		;FileAppend(songid . ";" . A_Loopfield . "`n","SongIds.db")
 		song_data := strsplit(A_Loopfield, ";")
 		if song_data.length=0
@@ -597,6 +603,7 @@ GenerateSongTable()
 ;		if A_Index = 432
 ;			MsgBox(song_data[1] " " song_data[15] "," song_data[16] "," song_data[17] "," song_data[18])
 	}
+	;Msgbox("There are " chartcount " charts!")
 }
 
 ;Called when Edit menu is closed. Enables/Disables checkboxes
@@ -795,6 +802,12 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 		Return
 	loop
 	{
+		;Safety if all fails
+		if A_Index>9999999
+		{
+			statusbar.SetText("We are out of charts! Would you please widen up your settings?:)")
+			Return
+		}
 		;Select Random k-Mode
 		kmode:=""
 		while kmode=""
@@ -831,7 +844,6 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 					Case 1:
 						songdif:="NM"
 						color:="00FF00"
-
 					Case 2:
 						songdif:="HD"
 						color:="00FFFF"
@@ -843,36 +855,34 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 						color:="FF00FF"
 				}
 		}
-	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%!=0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and CheckSongPack(songsdbmem[songnumber].sg) and songsdbmem[songnumber].order>-1 and RetrieveChartFromExludeDb(songsdbmem[songnumber].id, kmodnum, songdif) ;and songnumber>0 and songnumber<3
+	} until songsdbmem[songnumber:=Random(1,songsdbmem.length)].%kmode%.%songdif%>0 and songsdbmem[songnumber].%kmode%.%songdif%<=maximum and songsdbmem[songnumber].%kmode%.%songdif%>=minimum and CheckSongPack(songsdbmem[songnumber].sg) and songsdbmem[songnumber].order>-1 and RetrieveChartFromExludeDb(songsdbmem[songnumber].id, kmodnum, songdif)
 	guisongname.Text:=songsdbmem[songnumber].Name
 	guikmode.Text:=kmodnum . "K"
 	guidiff.SetFont("W700 C" . color)
 	guidiff.Text:=songdif
-	guistarsy.SetFont("s19 CFFFD55 W700")
+	if songdif="SC"
+		starcolors:=["DF0074", "C604E3", "3C65FF"]
+	else
+		starcolors:=["FFFD55", "FF8E55", "FF0000"]
+	guistarsy.SetFont("s19 W700 C" . starcolors[1])
 	guistarsy.Text:=""
-	guistarso.SetFont("s19 CFF8E55 W700")
+	guistarso.SetFont("s19 W700 C" . starcolors[2])
 	guistarso.Text:=""
-	guistarsr.SetFont("s19 CFF0000 W700")
+	guistarsr.SetFont("s19 W700 C" . starcolors[3])
 	guistarsr.Text:=""
-	guistarsp.SetFont("s19 CFF00FF W700")
-	guistarsp.Text:=""
-	
 	while A_Index<=Songsdbmem[songnumber].%kmode%.%songdif%
 	{
 		if A_Index<=5
 			guistarsy.Text:=guistarsy.Text . "★"
 		else if A_Index>5 and A_Index<=10
 			guistarso.Text:=guistarso.Text . "★"
-		else if A_Index>10 and A_Index<=13
-			guistarsr.Text:=guistarsr.Text . "★"
 		else 
-			guistarsp.Text:=guistarsp.Text . "★"
+			guistarsr.Text:=guistarsr.Text . "★"
 	}
 global kmod:=kmodnum, songd:=songdif, songid:=songsdbmem[songnumber].id
 excludebox.enabled := 1
 excludebox.value:= 0
 excludebox.visible := 1
-;SendDataToStreamDeck()
 if globwparam
 		try Send_WM_Copydata(Songsdbmem[songnumber].Name . ";" . kmode . ";" . Songsdbmem[songnumber].%kmode%.%songdif% . ";" . songdif, globwparam)
 
@@ -943,7 +953,7 @@ SendFunc(key, repeat:=1){
 	{
 		; Test for better diff accuracy
 		If key="right"
-			Sleep delaykeyinput.value
+			Sleep 2*delaykeyinput.value
 		Send "{" . key . " down}"
 		Sleep delaykeyinput.value
 		Send "{" . key . " up}"
