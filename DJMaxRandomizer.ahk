@@ -9,12 +9,15 @@
 
 
 ; Start detecting song Data from current selected songpack tab (not all songs tab!). Writes to SongList.db.
-;Numpad1::GetSongData()
+;+Numpad1::GetSongData()
+
+; do it only for current line. Does not add Songname!
+;Numpad1::GetSongData("only")
 ;
 ;Returns all difficulty banner colors and DLC banner color. Useful for new songpacks.
 ;Numpad2::GetSongGroupColor()
 
-;Numpad3::Reload()
+Numpad3::Reload()
 
 ; Function to quickly test if all songpacks are properly loaded. 1st column shows if it is on or off
 ;Numpad4::ListSongPacks()
@@ -32,8 +35,8 @@
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.0.241128f"
-songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
+Version:="2.1.241219"
+songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], charts:=chartsstat(), chartsmiss:=chartsstat(), globwparam:=""
 
 ; Create new settings file if it is missing
 try 
@@ -63,7 +66,8 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 2"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 3"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 4"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Extension 5"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Liberty"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "V Liberty"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "V Liberty 2"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Emotional Sense"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 1"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 2"))
@@ -113,7 +117,8 @@ songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V2"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V3"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V4"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "V5"))
-songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "VL"))
+songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "VL"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "VL2"))
 songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "ES"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T1"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T2"))
@@ -126,6 +131,7 @@ for each in songpacks
 DJMaxGui.Add("Text", "y+ wp hp", "")
 (songpacktoggle := DJMaxGui.Add("Checkbox", "y+ wp Checked", "All")).OnEvent('Click', ToggleAllSongPacks)
 DJMaxGui.Add("Button", "y+ hp", "Options").OnEvent('Click', (*)=>DjMaxGuiSubMenu.Show((DJMaxGui.GetClientPos(&x,&y,&w)) "x" x+w . "y" . y-30 ))
+;DJMaxGui.Add("Button", "y+ hp", "Stats").OnEvent('Click', (*)=>DJMaxGuiStat.Show((DJMaxGui.GetClientPos(&x,&y,&w)) "x" x+w . "y" . y-30 ))
 DJMaxGui.Add("Text", "x1 yp+40 w100 right","K-Modes:")
 kmode.push(DJMaxGui.Add("Checkbox", "x+10 yp w65", "4k"))
 kmode.push(DJMaxGui.Add("Checkbox", "x+ wp", "5k"))
@@ -228,6 +234,26 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 	UpdateSlider()
 	DJMaxGui.Show((winposx="null" ? "" : "x" . winposx . "y" winposy))
 	
+	; Beta
+	;DJMaxGuiStat := Gui("","Chart-Statistiks")
+	;DJMaxGuiStat.Add("Text", "x+ y+ left","Available charts").SetFont("underline")
+	;DJMaxGuiStat.Add("Text", "xp y+20 left","NM: " . charts.4k.NM + charts.5k.NM + charts.6k.NM + charts.8k.NM)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","HD: " . charts.4k.HD + charts.5k.HD + charts.6k.HD + charts.8k.HD)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","MX: " . charts.4k.MX + charts.5k.MX + charts.6k.MX + charts.8k.MX)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","SC: " . charts.4k.SC + charts.5k.SC + charts.6k.SC + charts.8k.SC)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","All: " . charts.4k.NM + charts.5k.NM + charts.6k.NM + charts.8k.NM +
+	;											charts.4k.HD + charts.5k.HD + charts.6k.HD + charts.8k.HD +
+	;											charts.4k.MX + charts.5k.MX + charts.6k.MX + charts.8k.MX +
+	;											charts.4k.SC + charts.5k.SC + charts.6k.SC + charts.8k.SC)
+	;DJMaxGuiStat.Add("Text", "x+60 y0 left","Excluded charts").SetFont("underline")
+	;DJMaxGuiStat.Add("Text", "xp y+20 left","NM: " . chartsmiss.4k.NM + chartsmiss.5k.NM + chartsmiss.6k.NM + chartsmiss.8k.NM)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","HD: " . chartsmiss.4k.HD + chartsmiss.5k.HD + chartsmiss.6k.HD + chartsmiss.8k.HD)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","MX: " . chartsmiss.4k.MX + chartsmiss.5k.MX + chartsmiss.6k.MX + chartsmiss.8k.MX)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","SC: " . chartsmiss.4k.SC + chartsmiss.5k.SC + chartsmiss.6k.SC + chartsmiss.8k.SC)
+	;DJMaxGuiStat.Add("Text", "xp y+ left","All: " . chartsmiss.4k.NM + chartsmiss.5k.NM + chartsmiss.6k.NM + chartsmiss.8k.NM +
+	;											chartsmiss.4k.HD + chartsmiss.5k.HD + chartsmiss.6k.HD + chartsmiss.8k.HD +
+	;											chartsmiss.4k.MX + chartsmiss.5k.MX + chartsmiss.6k.MX + chartsmiss.8k.MX +
+	;											chartsmiss.4k.SC + chartsmiss.5k.SC + chartsmiss.6k.SC + chartsmiss.8k.SC)
 	if A_Args.length>0
 		Receive_Connection_Data(A_Args[1])
 	NumpadAdd::{
@@ -244,6 +270,7 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 		if excludebox.Enabled=1
 			ExcludeChart(songid, kmod, songd)
 	}
+
 
 ; Chart data definition in memory
 class Generate_Chart_Data
@@ -273,8 +300,7 @@ class Generate_Chart_Data
 		this.fourk	:= {}
 		this.fivek	:= {}
 		this.sixk	:= {}
-		this.eightk	:= {}
-		
+		this.eightk:= {}
 		for f in ["nm","hd","mx","sc"]
 		{
 			this.fourk.%f% := fourkdata[A_Index]
@@ -282,7 +308,6 @@ class Generate_Chart_Data
 			this.sixk.%f% := sixkdata[A_Index]
 			this.eightk.%f% := eightkdata[A_Index]
 		}
-		
 		this.sg := songgroup
 		;Msgbox(this.name " " esg ":" esg>>1)
 		if esg>>1=2
@@ -311,6 +336,20 @@ class Generate_Chart_Data
 		}
 	}
 } 
+
+class chartsstat
+{
+	__New()
+	{
+		this.4k	:= {}
+		this.5k	:= {}
+		this.6k	:= {}
+		this.8k	:= {}
+		for md in [4,5,6,8]
+			for df in ["NM", "HD", "MX", "SC"]
+				this.%md%k.%df% := 0
+	}
+}
 
 ;Helper func to convert arr to writeable string
 ArrToStr(arr,min:=1,max:=0)
@@ -408,75 +447,77 @@ RetrieveChartFromExludeDb(songid, kmod, songd)
 EvaluateSongGroup(sg, dlc:=1)
 {
 	Switch sg
-		{
-			Case "RE":
-				val:=1
-			Case "RV":
-				val:=2
-			Case "P1":
-				val:=3
-			Case "P2":
-				val:=4
-			Case "P3":
-				val:=5
-			Case "TR":
-				val:=6
-			Case "CL":
-				val:=7
-			Case "BS":
-				val:=8
-			Case "V1":
-				val:=9
-			Case "V2":
-				val:=10
-			Case "V3":
-				val:=11
-			Case "V4":
-				val:=12
-			Case "V5":
-				val:=13
-			Case "VL":
-				val:=14
-			Case "ES":	
-				val:=15	
-			Case "T1":
-				val:=16
-			Case "T2":
-				val:=17
-			Case "T3":
-				val:=18
-			Case "TQ":
-				val:=19
-			Case "CH":
-				val:=20
-			Case "CY":
-				val:=21
-			Case "DE":
-				val:=22
-			Case "EZ":	
-				val:=23
-			Case "GC":
-				val:=24
-			Case "MD":
-				val:=25
-			Case "GG":
-				val:=26
-			Case "ET":
-				val:=27
-			Case "FA":
-				val:=28
-			Case "GF":
-				val:=29
-			Case "MA":
-				val:=30
-			Case "NE":
-				val:=31				
-			Case "TK":
-				val:=32	
-			Default:
-				MsgBox("Invalid Songgroup! Data corrupted? sg: " . sg)
-				ExitApp
-		}
+	{
+		Case "RE":
+			val:=1
+		Case "RV":
+			val:=2
+		Case "P1":
+			val:=3
+		Case "P2":
+			val:=4
+		Case "P3":
+			val:=5
+		Case "TR":
+			val:=6
+		Case "CL":
+			val:=7
+		Case "BS":
+			val:=8
+		Case "V1":
+			val:=9
+		Case "V2":
+			val:=10
+		Case "V3":
+			val:=11
+		Case "V4":
+			val:=12
+		Case "V5":
+			val:=13
+		Case "VL":
+			val:=14
+		Case "VL2":
+			val:=15
+		Case "ES":	
+			val:=16
+		Case "T1":
+			val:=17
+		Case "T2":
+			val:=18
+		Case "T3":
+			val:=19
+		Case "TQ":
+			val:=20
+		Case "CH":
+			val:=21
+		Case "CY":
+			val:=22
+		Case "DE":
+			val:=23
+		Case "EZ":	
+			val:=24
+		Case "GC":
+			val:=25
+		Case "MD":
+			val:=26
+		Case "GG":
+			val:=27
+		Case "ET":
+			val:=28
+		Case "FA":
+			val:=29
+		Case "GF":
+			val:=30
+		Case "MA":
+			val:=31
+		Case "NE":
+			val:=32				
+		Case "TK":
+			val:=33	
+		Default:
+			MsgBox("Invalid Songgroup! Data corrupted? sg: " . sg)
+			ExitApp
+	}
 	if dlc=1
 	{
 		;// RE,RV,P1,P2
@@ -491,30 +532,29 @@ EvaluateSongGroup(sg, dlc:=1)
 ; Helper Function to initialize arrays
 FillArr(count, data:=1)
 {
-arr:=[]
-while A_index<=count
-	arr.push(data)
-Return arr
+	arr:=[]
+	while A_index<=count
+		arr.push(data)
+	Return arr
 }
 
 ; Prints order of internal db songs. Useful to debug sorting function
 DebugFunc(name, order, songpack)
 {
-		static orderstr:=""
-		if order=1 and orderstr!=""
-		{
-			FileAppend(orderstr, "InternalDB.db","UTF-8")
-			;MsgBox(orderstr)
-			orderstr:=""	
-		}
-		orderstr := orderstr . name . "," . order . "," . songpack . "`n"
-		if order=5 and substr(name,1,1)="Z"
-		{
-			FileAppend(orderstr, "InternalDB.db","UTF-8")
-			;MsgBox(orderstr)
-			ExitApp(0)
-		}
-		
+	static orderstr:=""
+	if order=1 and orderstr!=""
+	{
+		FileAppend(orderstr, "InternalDB.db","UTF-8")
+		;MsgBox(orderstr)
+		orderstr:=""	
+	}
+	orderstr := orderstr . name . "," . order . "," . songpack . "`n"
+	if order=5 and substr(name,1,1)="Z"
+	{
+		FileAppend(orderstr, "InternalDB.db","UTF-8")
+		;MsgBox(orderstr)
+		ExitApp(0)
+	}		
 }
 
 ; Extends default sorting function since DJMax has a weird song sorting scheme 
@@ -575,7 +615,7 @@ FunctionSort(first,last,*)
 ; If Songtable is empty it will generate it
 GenerateSongTable()
 {
-	global songsdbmem := []
+	global songsdbmem := [], charts, chartsmiss
 	static SongsDB := sort(sort(FileRead("SongList.db","UTF-8")),,FunctionSort)
 	;chartcount:=0
 	loop parse SongsDB, "`n"
@@ -591,19 +631,20 @@ GenerateSongTable()
 			break
 		sd_index:=3
 		for k in [4,5,6,8]
-		{
 			for d in ["NM","HD","MX","SC"]
 			{
-			if !RetrieveChartFromExludeDb(songid,k,d)
-				song_data[sd_index]:=-1
-			sd_index++
+				if !RetrieveChartFromExludeDb(songid,k,d)
+				{
+					song_data[sd_index]:=-1
+					chartsmiss.%k%k.%d%++
+				}
+				else
+					if song_data[sd_index]>0
+						charts.%k%k.%d%++
+				sd_index++
 			}
-		}
 		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], songid, A_Index))
-;		if A_Index = 432
-;			MsgBox(song_data[1] " " song_data[15] "," song_data[16] "," song_data[17] "," song_data[18])
 	}
-	;Msgbox("There are " chartcount " charts!")
 }
 
 ;Called when Edit menu is closed. Enables/Disables checkboxes
@@ -696,21 +737,21 @@ SetMinMaxBoundaries()
 	{
 		B_Index:=A_Index-1
 		indexddisable:=0
-			for indexk in kmode
+		for indexk in kmode
+		{
+			if indexk.value=1 and (mindiff.value>minarray[4 * B_Index + A_Index] or maxdiff.value<maxarray[4 * B_Index + A_Index])
 			{
-				if indexk.value=1 and (mindiff.value>minarray[4 * B_Index + A_Index] or maxdiff.value<maxarray[4 * B_Index + A_Index])
-				{
-					indexkdisable[A_Index]++
-					indexddisable++
-				}
-				else
-				{
-					if indexd.value=0
-						indexkdisable[A_Index]++
-					if indexk.value=0
-						indexddisable++
-				}
+				indexkdisable[A_Index]++
+				indexddisable++
 			}
+			else
+			{
+				if indexd.value=0
+					indexkdisable[A_Index]++
+				if indexk.value=0
+					indexddisable++
+			}
+		}
 		if indexddisable=4
 			indexd.enabled:=0
 		else
@@ -879,15 +920,14 @@ RollSong(songpacks, kmodes, songdiff, mindiff, maxdiff)
 		else 
 			guistarsr.Text:=guistarsr.Text . "★"
 	}
-global kmod:=kmodnum, songd:=songdif, songid:=songsdbmem[songnumber].id
-excludebox.enabled := 1
-excludebox.value:= 0
-excludebox.visible := 1
-if globwparam
+	global kmod:=kmodnum, songd:=songdif, songid:=songsdbmem[songnumber].id
+	excludebox.enabled := 1
+	excludebox.value:= 0
+	excludebox.visible := 1
+	if globwparam
 		try Send_WM_Copydata(Songsdbmem[songnumber].Name . ";" . kmode . ";" . Songsdbmem[songnumber].%kmode%.%songdif% . ";" . songdif, globwparam)
-
-SelectSong(Songsdbmem[songnumber], kmode, songdif)
-CacheSongSelection(Songsdbmem[songnumber], kmode, songdif, 0)
+	SelectSong(Songsdbmem[songnumber], kmode, songdif)
+	CacheSongSelection(Songsdbmem[songnumber], kmode, songdif, 0)
 }
 
 CacheSongSelection(song:=0, kmode:=0, songdif:=0, run:=1)
@@ -913,7 +953,7 @@ SelectSong(song, kmode, songdif)
 	;In future need to implement song.order for # and !@#-Groups
 	if ord(strupper(song.name))-64 < 1 
 	{
-		SendFunc("Z")
+		SendFunc("z")
 		SendFunc("PgDn")
 		SendFunc("down", song.order-1)
 	}
