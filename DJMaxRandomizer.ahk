@@ -9,7 +9,7 @@
 
 
 ; Start detecting song Data from current selected songpack tab (not all songs tab!). Writes to SongList.db.
-;+Numpad1::GetSongData()
+;^Numpad1::GetSongData("pack")
 
 ; do it only for current line. Does not add Songname!
 ;Numpad1::GetSongData("only")
@@ -17,7 +17,7 @@
 ;Returns all difficulty banner colors and DLC banner color. Useful for new songpacks.
 ;Numpad2::GetSongGroupColor()
 
-Numpad3::Reload()
+;Numpad3::Reload()
 
 ; Function to quickly test if all songpacks are properly loaded. 1st column shows if it is on or off
 ;Numpad4::ListSongPacks()
@@ -35,7 +35,7 @@ Numpad3::Reload()
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.1.241219"
+Version:="2.1.241224b"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], charts:=chartsstat(), chartsmiss:=chartsstat(), globwparam:=""
 
 ; Create new settings file if it is missing
@@ -296,6 +296,9 @@ class Generate_Chart_Data
 				this.order:=++numeric
 			else
 				this.order	:= ++alphaarr[ord(strupper(this.name))-64]
+		; Further unlock conditions for very specific songs
+		if this.name="Diomedes ~Extended Mix~" and EvaluateSongGroup("VL2",0)=0
+			this.order:=-1
 		;debugfunc(this.name, this.order, songgroup)
 		this.fourk	:= {}
 		this.fivek	:= {}
@@ -563,7 +566,7 @@ DebugFunc(name, order, songpack)
 	; A lie <-> A lie ~deep inside mix~
 	; I've got a feeling has now 1370 Unicode
 	; We're gonna die <-> welcome to the space
-	; U-nivius
+	; U-nivus
 FunctionSort(first,last,*)
 {
 	;panic:=strsplit(first,";")
@@ -571,12 +574,13 @@ FunctionSort(first,last,*)
 	;	Msgbox(first "`n" strlen(panic[1]) "`n" ord(substr(panic[1],5,1)))
 	;dbg:=0
 	;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
-
 	first := strupper(first), last:=strupper(last)
 	
 	; Needed for Misty E'ra vs O'men
 	firstsp:=StrSplit(first,";",,3)
-	
+	lastsp:=StrSplit(last,";",,3)
+
+; ULTRA FAIL	
 	;fixing Alone against Alone
 	if (substr(first,1,5)="ALONE" and substr(last,1,5)="ALONE")
 		or (substr(first,1,8)="SHOWDOWN" and substr(last,1,8)="SHOWDOWN")
@@ -585,38 +589,50 @@ FunctionSort(first,last,*)
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))  
-		;if (substr(first,1,5)="I'M A" or substr(last,1,5)="I'M A") and (charf=39 or charl=39)
-		;	Msgbox(first "`n" last "`n" charf " vs " charl)
-
-		; moves charf pos down
+		;if substr(last,1,8)="Misty E'" and charf<=82 and charl=39   ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
+		;	Return -1
+		
+		; moves first pos down
 		if ((charf!=59 and charl=59)
-		or (charf=39 and charl=70 and firstsp[2]="RV")	; fixing I[']m Alive vs I[F]
-		or (charf=39 and charl=76)							; fixing ;O[']men vs 
-		or (charf=39 and charl=82 and firstsp[2]="V3")	; fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
-		or (charf=45 and charl=78)) 						; fixing U-Nivus
+		or (charf=45 and charl=68)	; Fixes Para[d]ise against Para[-]Q
+		or (charf=45 and charl=46) ; Partial U-Nivus fix
+		or (charf=50 and charl=126) 	; Fix for SuperSonic [~] Mr against SuperSonic [2]011
+		or (charf=39 and charl!=39 and ord(substr(first,A_Index+1,1))>charl) ; Trying to ignore ' char and instead compare next char
+		or (charl=700 and ord(substr(first,A_Index+1,1))<ord(substr(last,A_Index+1,1)) ;fix I've got a feeling
+		or ((charf=76 or charf=82) and charl=9734))) ; fixes Love☆Panic
 			Return 1
 
-		;moves charf position up
+		;moves first position up
 		if ((charf=59 and charl!=59)
-		or ((charf=65 or charf=73 or charf=76) and charl=39) ; Fix for We're All gonna die" against "WEA/WEI/WEL"
-		or (charf=68 and charl=45)		; Fixes Para[d]ise against Para[-]Q
-		or (charf=68 and charl=39)		; Fixes "Won't back down" against "Wonder Slot" 
-		or (charf=75 and charl=39)		; Fixes I[k]azuchi vs I[']m Alive
-		or (charf=126 and charl=50)	; Fix for SuperSonic [~] Mr against SuperSonic [2]011 
-		or (charf=9734 and (charl=76 or charl=82))) ; fixes Love☆Panic
+		or (charf=700) ; I've got a feeling
+		or (charl=45 and ord(substr(last,A_Index+1,1))>=charf) ; Fix for U-nivus
+		or (charl=39 and charf!=39 and (ord(substr(last,A_Index+1,1))>=charf and charf!=79))) ; Trying to ignore ' char and instead compare next char, exception O for Hell'o
 			Return -1
-		
-		; No sort	
+			
+		; Default sort
 		if charf!=charl
 			Return 0
+		;{
+		;	if substr(first,1,5)="Hell'" or substr(last,1,5)="Hell'"
+		;		Msgbox(first "`n" last "`nUp. because " charf ":" charl " or " ord(substr(first,A_Index+1,1)) ":" ord(substr(last,A_Index+1,1)) )
+		;	Return -1
+		;}	
 	}
 }
+
+MoveCharPos(chara, charb)
+{
+	if chara-charb>0
+		Return 
+}
+
 
 ; If Songtable is empty it will generate it
 GenerateSongTable()
 {
 	global songsdbmem := [], charts, chartsmiss
 	static SongsDB := sort(sort(FileRead("SongList.db","UTF-8")),,FunctionSort)
+	;static SongsDB := sort(FileRead("SongList.db","UTF-8"))
 	;chartcount:=0
 	loop parse SongsDB, "`n"
 	{
