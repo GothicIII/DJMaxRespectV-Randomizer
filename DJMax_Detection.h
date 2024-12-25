@@ -1,5 +1,5 @@
 ;// Library to generate SongList.db
-;// Version 1.3.241123
+;// Version 1.3.241224
 ;// Prerequisites
 ;// 
 ;// SongNames.db - ';' seperated csv with song names and addon short name
@@ -21,25 +21,22 @@ cv_packs:= [ "GG", "ET", "FA", "GF", "MA", "NE", "TK" ]
 refresh:=1 
 
 
-; Chart data definition in memory
-; Don't use the class from the main executable. It breaks when trying to detect Collab songs! 
-; May have some bugs for very long song names
+;// Chart data definition in memory
+;// Don't use the class from the main executable. It breaks when trying to detect Collab songs! 
+;// esg reference removed.
+;// May have some bugs for very long song names
 class Generate_Chart_Data_debug
 {
 	__New(name, songgroup, fourkdata, fivekdata, sixkdata, eightkdata)
 	{
-	global refresh, debugstring
-	static alphaarr := fillarr(26,0)
-	if refresh=1
-	{
-		alphaarr := fillarr(26,0)
-		refresh:=0
-	}
-	;esg:=EvaluateSongGroup(songgroup)
-	this.name 	:= name
-	;if esg=0 or esg=2
-	;	this.order:=-1
-	;else 
+		global refresh, debugstring
+		static alphaarr := fillarr(26,0)
+		if refresh=1
+		{
+			alphaarr := fillarr(26,0)
+			refresh:=0
+		}
+		this.name 	:= name
 		if ord(strupper(this.name))-64 < 1 
 			this.order:=0
 		else
@@ -69,17 +66,12 @@ class Generate_Chart_Data_debug
 	this.eightk.hd	:= eightkdata[2]
 	this.eightk.mx	:= eightkdata[3]
 	this.eightk.sc	:= eightkdata[4]
-	;esg=1 ? this.sg := "CM"
-	;esg=2 ? this.sg := "CV"
-	;if esg>1
-	;	this.sg := "CO"
-	;else 
-		this.sg := songgroup
+	this.sg := songgroup
 	}
 } 
 
-;//Writes Songlist.db
-AppendSongData(songobject){
+;// Writes Songlist.db
+AppendSongData(songobject, filename:="SongList_New.db"){
 	try 
 	{
 		FileAppend
@@ -102,30 +94,24 @@ AppendSongData(songobject){
 	songobject.eightk.hd ";"
 	songobject.eightk.mx ";"
 	songobject.eightk.sc "`n" 
-	), "SongList_New.db"
+	), filename, "UTF-8"
 	}
 	catch
 		AppendSongData(songobject)
-Return
 }
 
 ;// creates a difficulty array and detects how many difficulty charts exist for that song.
 CreateDiffArray(buttoncolor, TTwo)
 {
-	buttoncolorTtwo:=["0xFFBA00", "0xFD6306", "0xFE00D8", "0xFF0042"]
+	buttoncolorTtwo:=["0xFFBA00", "0xFD6306", "0xFF00D8", "0xFF0042"]
 	xbuttondiffpos:=[133,293,453,613]
 	y:=667
 	diff_arr:=[]
-	
-	
 	for curdiff in xbuttondiffpos
 	{
 		WinActivate("ahk_exe DJMax Respect V.exe")
-		;Msgbox(PixelGetColor(curdiff,y))
 		if TTwo=1
-		{
 			buttoncolor:=buttoncolorTtwo[A_Index]
-		}
 		if buttoncolor=PixelGetColor(curdiff,y)
 		{
 			diff_arr.push(GetSongDiff())
@@ -138,28 +124,29 @@ CreateDiffArray(buttoncolor, TTwo)
 		}
 		else
 		{
-			;/ Testing!!!! Creates wrong data
-			if curdiff=133 and PixelGetColor(133,667)!="0x13291B" 
-				Msgbox("NM not found! Try again?`nNeed: " buttoncolor "`nFound: " PixelGetColor(133,667))
+			;// Skips data, so be careful!
+			while (curdiff=133 and PixelGetColor(133,667)!="0x132A1B")
+				if Msgbox("NM not found! Try again?`nCancel will skip the chart!`n`nNeed: " buttoncolor "`nFound: " PixelGetColor(133,667),"Error",0x5)!="Retry"
+					break
 			diff_arr.push(0)
 		}
 	}
 	Return diff_arr
 }
 
-; Generates songpack bounderies by parsing songname db. 
-; Bounderies for CM/CV are taken from global cm/cv_packs[].
+;// Generates songpack bounderies by parsing songname db. 
+;// Bounderies for CM/CV are taken from global cm/cv_packs[].
 Class Song_Order_Numbers_New
 {
 	__New(dbg:=0)
 	{
-		SongNamesDb := FileRead("DJMaxSongNames.db")
+		SongNamesDb := FileRead("DJMaxSongNames.db","UTF-8")
 		global cm_packs, cv_packs
 		gp_last:="RE"
 		gp_cnt:=0
 		loop parse SongNamesDb, "`n"
 		{
-			gp_cur := substr(A_Loopfield,-2,2)
+			gp_cur := StrSplit(A_Loopfield,";",,2).Get(2)
 			for cm in cm_packs
 				if cm = gp_cur
 					gp_cur:="CM"
@@ -192,80 +179,58 @@ Class Song_Order_Numbers_New
 ;// Returns songname from SongNames.db by interpreting songgroup and song_order_numbers.
 ;// e.g. FetchSongname("RE") returns the first songname found in songnames.db
 ;// consecutive calls will return the 2nd, 3rd... songnames of that songname group
-FetchSongname(SongGroup)
+FetchSongname(SongGroup,mode:=0)
 {
-	static SongNamesDb := FileRead("DJMaxSongNames.db")
+	static SongNamesDb := FileRead("DJMaxSongNames.db","UTF-8")
 	static songorder:=Song_Order_Numbers_New()
-	
-
-	;//deprecated
-	;if songorder.%SongGroup%[3]=songorder.%SongGroup%[1]
-	;	{
-	;	WinActivate("ahk_exe DJMax Respect V.exe")
-	;	Send "{RShift down}" 
-	;	Sleep 50
-	;	Send "{RShift up}" 
-	;	}
-	;	else
-	;	{
-	;		Send "{Down Down}"
-	;		Sleep 25
-	;		Send "{Down Up}"
-	;	}
-	;	
-		WinActivate("ahk_exe DJMax Respect V.exe")
-		Send "{Down Down}"
-		Sleep 25
-		Send "{Down Up}"
-		Sleep 300
-		if pixelgetcolor(133,667)="0x13291B"	
-		{
-			Msgbox("Random reached! Changing section...","Information","T2")
-			WinActivate("ahk_exe DJMax Respect V.exe")
-			Send "{RShift down}" 
-			Sleep 50
-			Send "{RShift up}" 
-			Sleep 500
-		}
-		loop parse SongNamesDb, "`n"
+	loop parse SongNamesDb, "`n"
 		if A_Index=songorder.%SongGroup%[2]+songorder.%SongGroup%[1]-1
 		{
 			songorder.%SongGroup%[1]++
-			Return [ substr(A_Loopfield,1,StrLen(A_Loopfield)-3), substr(A_Loopfield,-2,2) ]
+			Return StrSplit(A_Loopfield,";",,2)
 		}
 }
 
 ;// Main function. Collects all data and sends it for writing into songlist.db
-GetSongData(){
+GetSongData(mode:="all")
+{
 	global globpause
-	WinActivate("ahk_exe DJMax Respect V.exe")
-	lastsonggroup:=songgroup:=""
-	;while songgroup!="CM" or A_Index<=85 ;Number of collaboration songs
+	lastsonggroup:=songgroup:=GetSongGroup(), filename:=""
 	while songgroup!="FIN"
 	{
-		songgroup:=GetSongGroup()
+		WinActivate("ahk_exe DJMax Respect V.exe")
 		if lastsonggroup!=songgroup
 		{
 			A_Index:=1
 			lastsonggroup:=songgroup
 		}
 		Ttwo:=0
+		if pixelgetcolor(133,667)="0x132A1B"
+		{
+			if mode="pack" or mode="only"
+			{
+				songgroup:="FIN"
+				continue
+			}
+			Msgbox("Random reached! Changing section...","Information","T2")
+			WinActivate("ahk_exe DJMax Respect V.exe")
+			Send "{RShift down}" 
+			Sleep 50
+			Send "{RShift up}" 
+			Sleep 500
+		}	
 		Switch songgroup
 		{
-			Case "RE":
-				buttoncolor := "0xF0B405"
-			Case "RV":
+			Case "RE","RV":
 				buttoncolor := "0xF0B405"
 			Case "P1":	
 				buttoncolor := "0x00B4D4"
 			Case "P2":
 				buttoncolor := "0xFF1E1E"
 			Case "P3":
-				buttoncolor := "0xFCAC00"
+				buttoncolor := "0xFBBD00"
 			Case "TR":
 				buttoncolor := "0x7289FF"
-			Case "CL":
-				buttoncolor := "0xFFFFFF"
 			Case "BS":
 				buttoncolor := "0xEC0043"
 			Case "V1":
@@ -277,9 +242,11 @@ GetSongData(){
 			Case "V4":
 				buttoncolor := "0xBD000F"
 			Case "V5":
-				buttoncolor := "0xFFA90F"
+				buttoncolor := "0xFFB71E"
 			Case "VL":
 				buttoncolor := "0xFFF650"
+			Case "VL2":
+				buttoncolor := "0x99FF33"
 			Case "ES":
 				buttoncolor := "0x1AD10B"
 			Case "T1":
@@ -291,9 +258,7 @@ GetSongData(){
 				buttoncolor := "0x1257EE"
 			Case "TQ":
 				buttoncolor := "0x999999"
-			Case "CM":
-				buttoncolor := "0xFFFFFF"
-			Case "CV":
+			Case "CL","CM","CV":
 				buttoncolor := "0xFFFFFF"
 			default:
 				Msgbox("Error: Button Color NM:" . PixelGetColor(133,667))
@@ -314,13 +279,28 @@ GetSongData(){
 		Send "{4 down}"
 		Sleep 25
 		Send "{4 up}"
-		snsg:=FetchSongname(songgroup)
-		AppendSongData(Generate_Chart_Data_debug(snsg[1], snsg[2], fourkdata, fivekdata, sixkdata, eightkdata))
+		WinActivate("ahk_exe DJMax Respect V.exe")
+		Send "{Down Down}"
+		Sleep 25
+		Send "{Down Up}"
+		Sleep 300
+		snsg:=FetchSongname(songgroup, mode)
+		if mode="only"
+		{
+			snsg:=["Placeholder", songgroup]
+			filename:="SongList_Line.db"
+			songgroup:="FIN"
+		}
+		AppendSongData(Generate_Chart_Data_debug(snsg[1], snsg[2], fourkdata, fivekdata, sixkdata, eightkdata), filename)
+		if not mode="only"
+			songgroup:=GetSongGroup()
 	}
+	Msgbox("Job finished!",,"T5")
 }
 
 ;//Detects how many * the songchart has. It is written recursivly to extremely improve correct detection rate.
-GetSongDiff(safetyresult:=0){
+GetSongDiff(safetyresult:=0)
+{
 	WinActivate("ahk_exe DJMax Respect V.exe")
 	x:=609
 	maxdiff:=15
@@ -341,63 +321,70 @@ GetSongDiff(safetyresult:=0){
 }
 
 ;//detects songgroup by determining the pixelcolor of the songgroup banner
-GetSongGroup(){
-;First pixel of DLC banner
-WinActivate("ahk_exe DJMax Respect V.exe")
+GetSongGroup(rec:=1)
+{
+	;// First pixel of DLC banner
+	WinActivate("ahk_exe DJMax Respect V.exe")
 	Switch pxcolor:=PixelGetColor(110,292)
 	{
-	Case "0xEFB506":
-		Return "RE"
-	Case "0xFFAE00":
-		Return "RV"
-	Case "0x00B3D5":
-		Return "P1"	
-	Case "0xFF1D77":
-		Return "P2"	
-	Case "0xFABC00":
-		Return "P3"	
-	Case "0x7F97FE":
-		Return "TR"
-	Case "0xFFFFFF":
-		Return "CL"
-	Case "0xEC0043":
-		Return "BS"
-	Case "0xFB721F":
-		Return "V1"
-	Case "0xBA3955":
-		Return "V2"
-	Case "0x691AC4":
-		Return "V3"
-	Case "0xBE000E":
-		Return "V4"
-	Case "0xFFA509":
-		Return "V5"		
-	Case "0x49F8FC":
-		Return "VL"		
-	Case "0x34DF26":
-		Return "ES"
-	Case "0xF11CC7":
-		Return "T1"
-	Case "0x11D9D2":
-		Return "T2"
-	Case "0x514DF5":
-		Return "T3"
-	Case "0xBBBBBB":
-		Return "TQ"	
-	Case "0x4C4C4C":
-		if PixelGetColor(1008,200)="0xBABABA"
-			Return "CM"
-		else 
-			Return "CV"
-	Case "0xFFAE00":
-		Return "FIN"
+		Case "0xEFB506":
+			Return "RE"
+		Case "0xFFAD00":
+			Return "RV"
+		Case "0x00B4D4":
+			Return "P1"	
+		Case "0xFF1D77":
+			Return "P2"	
+		Case "0xFBBD00":
+			Return "P3"	
+		Case "0x7F97FF":
+			Return "TR"
+		Case "0xFFFFFF":
+			Return "CL"
+		Case "0xEC0043":
+			Return "BS"
+		Case "0xFB721E":
+			Return "V1"
+		Case "0xBA3955":
+			Return "V2"
+		Case "0x691AC4":
+			Return "V3"
+		Case "0xBF000E":
+			Return "V4"
+		Case "0xFFA80C":
+			Return "V5"		
+		Case "0x48F7F8":
+			Return "VL"		
+		Case "0x99FF33":
+			Return "VL2"	
+		Case "0x34DF26":
+			Return "ES"
+		Case "0xF21CC7":
+			Return "T1"
+		Case "0x10D9D6":
+			Return "T2"
+		Case "0x514DF5":
+			Return "T3"
+		Case "0xBBBBBB":
+			Return "TQ"	
+		Case "0x4C4C4C":
+			if PixelGetColor(1008,200)="0xBABABA"
+				Return "CM"
+			else 
+				Return "CV"
 	}
-		Return GetSongGroup()	
+	if rec<10
+		Return GetSongGroup(++rec)
+	else
+	{
+		Msgbox("No known Songgroup detected! Color: " pxcolor)
+		Reload
+	}
 }
 
-; currently not in use. Attempt to replace default sort function
-; Problems: Even after getting around the non-ascii-conform table, the songs need always somekind of exception. e.g. U-NIVUS or We're gonna die
-; Thats why legacy code will be used, because it is easier to implement changes on a per-song-basis.
+;// currently not in use. Attempt to replace default sort function
+;// Problems: Even after getting around the non-ascii-conform table, the songs need always somekind of exception. e.g. U-NIVUS or We're gonna die
+;// Thats why legacy code will be used, because it is easier to implement changes on a per-song-basis.
 customsort(strf, strl, *)
 {
 	strf := substr(strf,1,strlen(strf)-4)
@@ -440,27 +427,25 @@ customsort(strf, strl, *)
 	Return 0
 }
 
-
 CreateSongNameDbFromSongList()
 {
 	try FileMove("DJMaxSongNames.db", "DJMaxSongNames_" . version . "_bak.db", 1) 
 	count:=0
 	loop Read "SongList.db","DJMaxSongNames.db"
-	{
 		loop parse A_Loopreadline, "`n"
 		{
 			str_arr := StrSplit(A_Loopreadline,";")
 			if str_arr.length>1
 				FileAppend(str_arr[1] . ";" str_arr[2] . "`n")
+				;FileAppend(CreateID(A_Loopreadline) . ";" . str_arr[1] . ";" str_arr[2] . "`n")
 			count++
 		}
-	}
 	Msgbox("File generation complete!`n Wrote " count " lines")
 }
 
 ListSongPacks()
 {
-		dbgname:=""
+	dbgname:=""
 	for names in songpacks
 		dbgname.= names.text ":" names.value ":" A_Index "/" songpacks.length . "`n"
 	Msgbox(dbgname)
@@ -475,4 +460,28 @@ GetSongGroupColor(){
 		. "`nButton Color MX:" . PixelGetColor(453,667)
 		. "`nButton Color SC:" . PixelGetColor(613,667)
 		)
+}
+
+;// It does not work for real CRC32
+;// but the broken code should suffice for the purpose. 
+;// => Nope Having many hash collisions
+CreateIdOld(str)
+{
+	str_hex := ""
+	loop parse str
+		str_hex .= Format("{1:x}", ord(A_Loopfield)>255?255:ord(A_Loopfield))
+	x := str_hex . 12345678
+	;Msgbox(x)
+	R := 0xFFFFFFFF
+		loop parse x
+		{
+			y := "0x" . A_Loopfield
+			Loop 4
+			{
+				R := (R << 1) ^ ((y << (A_Index+28)) & 0x10000000)
+				If R > 0xFFFFFFFF
+					R := R ^ 0x104C11DB7
+			}
+		}
+	Return Format("{:08x}",R)
 }
