@@ -5,37 +5,43 @@
 
 ; <DEBUG FUNCTIONS>
 ; Main header for debug/recording functions
-;#include DJMax_Detection.h
+/*
+#include DJMax_Detection.h
 
+!Numpad1::GetSongData("all")
 
 ; Start detecting song Data from current selected songpack tab (not all songs tab!). Writes to SongList.db.
-;^Numpad1::GetSongData("pack")
+^Numpad1::GetSongData("pack")
 
 ; do it only for current line. Does not add Songname!
-;Numpad1::GetSongData("only")
+Numpad1::GetSongData("only")
 ;
 ;Returns all difficulty banner colors and DLC banner color. Useful for new songpacks.
-;Numpad2::GetSongGroupColor()
+Numpad2::GetSongGroupColor()
 
-;Numpad3::Reload()
+Numpad3::Reload()
 
 ; Function to quickly test if all songpacks are properly loaded. 1st column shows if it is on or off
-;Numpad4::ListSongPacks()
+Numpad4::ListSongPacks()
 
 ; Function call testing if fetching the songname works. Repeated calls should return the next song from this songpack.
-;Numpad5::Msgbox(FetchSongName("CM"))
+Numpad5::Msgbox(FetchSongName("ES").Get(1))
+!Numpad5::Msgbox(FetchSongName("CM").Get(1))
+;Numpad5::FetchSongName("ES")
 
 ;Generates Songname.db from SongList.
-;Numpad6::CreateSongNameDbFromSongList()
+Numpad6::CreateSongNameDbFromSongList()
+
+Numpad7::Msgbox(EvaluateSongGroup("PL1",0))
 
 ; Quickly shows songpack bounderies. They are directly taken from SongNames db. Add new cm/cv songpacks in global section of Detection.h!
-;Numpad9::Song_Order_Numbers_New(1)
+Numpad9::Song_Order_Numbers_New(1)
 ;try (FileDelete("InternalDB.db"))
-
+*/
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.1.241224b"
+Version:="2.2.250219"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], charts:=chartsstat(), chartsmiss:=chartsstat(), globwparam:=""
 
 ; Create new settings file if it is missing
@@ -48,7 +54,7 @@ catch
 	try FileDelete("DJMaxRandomizer.ini")
 	Iniwrite("min=1`nmax=15`nkmodes=1111`ndifficulty=1111`nwinposx=null`nwinposy=null`nkeydelay=25`nversion=" . Version, "DJMaxRandomizer.ini", "config")
 	Iniwrite("packs=1111", "DJMaxRandomizer.ini", "packs_selected")
-	Iniwrite("main=0`ncollmus=0`ncollvar=0", "DJMaxRandomizer.ini", "dlc_owned")
+	Iniwrite("main=0`ncollmus=0`ncollvar=0`nplipak=0", "DJMaxRandomizer.ini", "dlc_owned")
 }
 
 ; GUI Initializiation
@@ -77,6 +83,7 @@ maindlccount:=dlcpacks.length
 DJMaxGuiSubMenu.Add("Text", "x10 y+40 w250 left","Collaboration").SetFont("Underline")
 DJMaxGuiSubMenu.Add("Text", "x10 y+ w150 left section","Music Packs:").SetFont("Underline")
 DJMaxGuiSubMenu.Add("Text", "x+ yp left","Variety Packs:").SetFont("Underline")
+DJMaxGuiSubMenu.Add("Text", "x+50 yp left","PLI Playlist Packs:").SetFont("Underline")
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x10 y+ w150 section", "Chunism"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Cytus"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Deemo"))
@@ -91,8 +98,10 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Girls' Frontline"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Maplestory"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Nexon"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Tekken"))
+varietydlccount:=dlcpacks.length
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "2025 Vol. 1"))
 (dlcpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "x+ ys wp Checked", "All DLC")).OnEvent('Click', ToggleMainDLCSongPacks)
-(collabpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "y+ wp Checked", "All Collab")).OnEvent('Click', ToggleCollSongPacks)
+(collabpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "y+ wp Checked", "All Coll/PLI")).OnEvent('Click', ToggleCollSongPacks)
 DJMaxGuiSubMenu.Add("Text", "x10 y+100 w450 left","Select the DLCs you have. Settings will be saved.`nThis will regenerate the random table so unowned songs`nwon't be rolled.")
 DJMaxGuiSubMenu.Add("Text", "x10 y+20 left","Keydelay in msec:")
 delaykeyinput := DJMaxGuiSubMenu.Add("Slider", "x+ Tooltip Range5-100", iniread("DJMaxRandomizer.ini", "config", "keydelay"))
@@ -126,6 +135,7 @@ songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "T3"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "TQ"))
 songpacks.push(DJMaxGui.Add("Checkbox", "x+ ys wp", "CM"))
 songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "CV"))
+songpacks.push(DJMaxGui.Add("Checkbox", "y+ wp", "PL"))
 for each in songpacks
 	each.OnEvent('Click', (*)=>Checkfilter())
 DJMaxGui.Add("Text", "y+ wp hp", "")
@@ -176,6 +186,7 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "main"))
 	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "collmus"))
 	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "collvar"))
+	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "plipak"))
 	mindiff.value:=settings[1]
 	maxdiff.value:=settings[2]
 	loop parse settings[3]
@@ -199,14 +210,19 @@ statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 	}
 	; dlcmus
 	if settings[10]=0
-		songpacks[songpacks.length-1].enabled:=0
+		songpacks[songpacks.length-2].enabled:=0
 	loop parse settings[10]
 		dlcpacks[A_Index+maindlccount].value:=A_Loopfield
 	; dlcvar
 	if settings[11]=0
-		songpacks[songpacks.length].enabled:=0
+		songpacks[songpacks.length-1].enabled:=0
 	loop parse settings[11]
 		dlcpacks[A_Index+musicdlccount].value:=A_Loopfield
+	; dlcpli	
+	if settings[12]=0
+		songpacks[songpacks.length].enabled:=0
+	loop parse settings[12]
+		dlcpacks[A_Index+varietydlccount].value:=A_Loopfield
 	if not FileExist("SongList.db")
 	{
 		if (MsgBox("You need to generate a SongList.db first! Either use GetSongData() from detection lib or download a premade one!","SongList.db missing!",5)= "Retry")
@@ -289,7 +305,7 @@ class Generate_Chart_Data
 		esg:=EvaluateSongGroup(songgroup)
 		this.name 	:= name
 		this.id		:= songid
-		if esg=0 or esg=2 or esg=4
+		if esg=0 or esg=2 or esg=4 or esg=6
 			this.order:=-1
 		else 
 			if ord(strupper(this.name))-64 < 1 
@@ -297,7 +313,12 @@ class Generate_Chart_Data
 			else
 				this.order	:= ++alphaarr[ord(strupper(this.name))-64]
 		; Further unlock conditions for very specific songs
-		if this.name="Diomedes ~Extended Mix~" and EvaluateSongGroup("VL2",0)=0
+		if (this.name="Airwave ~Extended Mix~" and EvaluateSongGroup("CL",0)=0 and EvaluateSongGroup("T1",0)=0)
+			or (this.name="Diomedes ~Extended Mix~" and EvaluateSongGroup("VL2",0)=0)
+			or (this.name="Flowering ~Original Ver.~" and EvaluateSongGroup("V1",0)=0)
+			or (this.name="Here in the Moment ~Extended Mix~" and EvaluateSongGroup("BS",0)=0 and EvaluateSongGroup("T1",0)=0)
+			or (this.name="Karma ~Original Ver.~" and EvaluateSongGroup("V3",0)=0)
+			or (this.name="SON OF SUN ~Extended Mix~" and EvaluateSongGroup("CL",0)=0 and EvaluateSongGroup("BS",0)=0)
 			this.order:=-1
 		;debugfunc(this.name, this.order, songgroup)
 		this.fourk	:= {}
@@ -447,6 +468,7 @@ RetrieveChartFromExludeDb(songid, kmod, songd)
 ;Return 0/1 Main DLC packs (off/on)
 ;Return 2/3 Collab Music packs (off/on)
 ;Return 4/5 Collab Variety packs (off/on)
+;Return 6/7 PLI - Playlist packs (off/on)
 EvaluateSongGroup(sg, dlc:=1)
 {
 	Switch sg
@@ -517,6 +539,8 @@ EvaluateSongGroup(sg, dlc:=1)
 			val:=32				
 		Case "TK":
 			val:=33	
+		Case "PL1":
+			val:=34
 		Default:
 			MsgBox("Invalid Songgroup! Data corrupted? sg: " . sg)
 			ExitApp
@@ -526,10 +550,10 @@ EvaluateSongGroup(sg, dlc:=1)
 		;// RE,RV,P1,P2
 		if val<=4
 			Return 1
-		Return dlcpacks[val-4].value + (val>musicdlccount+4?4:(val>maindlccount+4?2:0))
+		Return dlcpacks[val-4].value + (val>varietydlccount+4?6:(val>musicdlccount+4?4:(val>maindlccount+4?2:0)))
 	}
 	else 
-		Return songpacks[(val>musicdlccount+4?songpacks.length:(val>maindlccount+4?songpacks.length-1:val))].value
+		Return songpacks[(val>varietydlccount+4?songpacks.length:(val>musicdlccount+4?songpacks.length-1:(val>maindlccount+4?songpacks.length-2:val)))].value
 }
 
 ; Helper Function to initialize arrays
@@ -672,7 +696,7 @@ ModifySettings(*)
 	{
 		;checks for maindlc, cm and cv. If more songpacks get added, the checkbox is not properly grayed out. Fix it here!
 		;currently there are 6 songpacks for cm, so A_Index<=maindlccount+6 is the check for it
-		element := (A_Index<=maindlccount ? A_Index+4 : (A_Index<=musicdlccount ? songpacks.length-1: songpacks.length))
+		element := (A_Index<=maindlccount ? A_Index+4 : (A_Index<=musicdlccount ? songpacks.length-2: (A_Index<=varietydlccount ? songpacks.length-1:songpacks.length)))
 		;
 		
 		if skip=1 and element<musicdlccount
@@ -690,11 +714,17 @@ ModifySettings(*)
 		;Msgbox("Else: " element "," songpacks.length ", sp_old" songpacks[element].value)
 			songpacks[element].value:=1
 			songpacks[element].enabled:=1
-			;fix for CV
+			;fix for PLI
 			if element=songpacks.length
 				break
+			;fix for CV
+			if element=songpacks.length-1 and element<=varietydlccount
+			{
+				skip:=1 
+				continue
+			}
 			;fix for CM
-			if element=songpacks.length-1 and element<=musicdlccount
+			if element=songpacks.length-2 and element<=musicdlccount
 			{
 				skip:=1 
 				continue
@@ -727,8 +757,10 @@ SaveAndExit(*)
 		iniwrite(ArrToStr(dlcpacks,1,maindlccount),"DJMaxRandomizer.ini", "dlc_owned", "main")
 	if settings[10]!=ArrToStr(dlcpacks,maindlccount+1,musicdlccount)
 		iniwrite(ArrToStr(dlcpacks,maindlccount+1,musicdlccount),"DJMaxRandomizer.ini", "dlc_owned", "collmus")
-	if settings[11]!=ArrToStr(dlcpacks,musicdlccount+1,dlcpacks.length)
-		iniwrite(ArrToStr(dlcpacks,musicdlccount+1,dlcpacks.length),"DJMaxRandomizer.ini", "dlc_owned", "collvar")
+	if settings[11]!=ArrToStr(dlcpacks,musicdlccount+1,varietydlccount)
+		iniwrite(ArrToStr(dlcpacks,musicdlccount+1,varietydlccount),"DJMaxRandomizer.ini", "dlc_owned", "collvar")
+	if settings[12]!=ArrToStr(dlcpacks,varietydlccount+1,dlcpacks.length)
+		iniwrite(ArrToStr(dlcpacks,varietydlccount+1,dlcpacks.length),"DJMaxRandomizer.ini", "dlc_owned", "plipak")
 	filedb:=fileopen("DJMaxExcludeCharts.db","w")
 	global excludedb
 	for id, data in excludedb
