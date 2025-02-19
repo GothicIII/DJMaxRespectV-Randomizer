@@ -1,5 +1,5 @@
 ;// Library to generate SongList.db
-;// Version 1.3.241224
+;// Version 1.3.250219
 ;// Prerequisites
 ;// 
 ;// SongNames.db - ';' seperated csv with song names and addon short name
@@ -18,6 +18,7 @@
 ;//
 cm_packs:= [ "CH", "CY", "DE", "EZ", "GC", "MD"]
 cv_packs:= [ "GG", "ET", "FA", "GF", "MA", "NE", "TK" ]
+pli_packs:=[ "PL1" ]
 refresh:=1 
 
 
@@ -101,17 +102,20 @@ AppendSongData(songobject, filename:="SongList_New.db"){
 }
 
 ;// creates a difficulty array and detects how many difficulty charts exist for that song.
-CreateDiffArray(buttoncolor, TTwo)
+CreateDiffArray(buttoncolor, altcolr)
 {
 	buttoncolorTtwo:=["0xFFBA00", "0xFD6306", "0xFF00D8", "0xFF0042"]
+	buttoncolorpli:=["0xE0D4BC", "0xDED5BC", "0xE0D4BC", "0xE0D5B8"]
 	xbuttondiffpos:=[133,293,453,613]
 	y:=667
 	diff_arr:=[]
 	for curdiff in xbuttondiffpos
 	{
 		WinActivate("ahk_exe DJMax Respect V.exe")
-		if TTwo=1
-			buttoncolor:=buttoncolorTtwo[A_Index]
+		if altcolr=1
+			buttoncolor:=buttoncolorttwo[A_Index]
+		if altcolr=2
+			buttoncolor:=buttoncolorpli[A_Index]
 		if buttoncolor=PixelGetColor(curdiff,y)
 		{
 			diff_arr.push(GetSongDiff())
@@ -141,19 +145,23 @@ Class Song_Order_Numbers_New
 	__New(dbg:=0)
 	{
 		SongNamesDb := FileRead("DJMaxSongNames.db","UTF-8")
-		global cm_packs, cv_packs
+		global cm_packs, cv_packs, pli_packs
 		gp_last:="RE"
 		gp_cnt:=0
 		loop parse SongNamesDb, "`n"
 		{
+			if A_Loopfield=""
+				continue
 			gp_cur := StrSplit(A_Loopfield,";",,2).Get(2)
 			for cm in cm_packs
 				if cm = gp_cur
 					gp_cur:="CM"
-			
 			for cv in cv_packs
 				if cv = gp_cur
 					gp_cur:="CV"
+			for pli in pli_packs
+				if pli = gp_cur
+					gp_cur:="PLI"
 			if gp_last!=gp_cur
 			{	
 				this.%gp_last%:= [ 1, A_Index-gp_cnt, gp_cnt ]
@@ -170,7 +178,9 @@ Class Song_Order_Numbers_New
 					if A_index>1 and A_index<3
 						dbgstr .= idx . ", "
 					else if A_Index>1
+					{
 						dbgstr .= idx . " : " . sg . "`n"
+					}
 		Msgbox("idx, cnt, pack`n" . sort(dbgstr,"N"))
 		}	
 	}
@@ -179,13 +189,15 @@ Class Song_Order_Numbers_New
 ;// Returns songname from SongNames.db by interpreting songgroup and song_order_numbers.
 ;// e.g. FetchSongname("RE") returns the first songname found in songnames.db
 ;// consecutive calls will return the 2nd, 3rd... songnames of that songname group
-FetchSongname(SongGroup,mode:=0)
+FetchSongname(SongGroup)
 {
 	static SongNamesDb := FileRead("DJMaxSongNames.db","UTF-8")
 	static songorder:=Song_Order_Numbers_New()
 	loop parse SongNamesDb, "`n"
 		if A_Index=songorder.%SongGroup%[2]+songorder.%SongGroup%[1]-1
 		{
+			if songorder.%SongGroup%[3]<songorder.%SongGroup%[1]
+				Return ["STOP", "NOW"]
 			songorder.%SongGroup%[1]++
 			Return StrSplit(A_Loopfield,";",,2)
 		}
@@ -204,20 +216,23 @@ GetSongData(mode:="all")
 			A_Index:=1
 			lastsonggroup:=songgroup
 		}
-		Ttwo:=0
-		if pixelgetcolor(133,667)="0x132A1B"
+		altcolr:=0
+		if (snsg:=FetchSongname(songgroup)).Get(1)="STOP" or pixelgetcolor(133,667)="0x13291B"
 		{
 			if mode="pack" or mode="only"
 			{
 				songgroup:="FIN"
 				continue
 			}
-			Msgbox("Random reached! Changing section...","Information","T2")
+			if Msgbox("Last song reached! Continueing in about 5 seconds...","Information","0x4 T5")="No"
+				break
 			WinActivate("ahk_exe DJMax Respect V.exe")
 			Send "{RShift down}" 
 			Sleep 50
 			Send "{RShift up}" 
 			Sleep 500
+			songgroup:=GetSongGroup()
+			snsg:=FetchSongname(songgroup)
 		}	
 		Switch songgroup
 		{
@@ -253,29 +268,32 @@ GetSongData(mode:="all")
 				buttoncolor := "0xF21CC7"
 			Case "T2":
 				buttoncolor := "0"
-				Ttwo:=1
+				altcolr:=1
 			Case "T3":
 				buttoncolor := "0x1257EE"
 			Case "TQ":
 				buttoncolor := "0x999999"
 			Case "CL","CM","CV":
 				buttoncolor := "0xFFFFFF"
+			Case "PLI":
+				buttoncolor := "0"
+				altcolr:=2
 			default:
 				Msgbox("Error: Button Color NM:" . PixelGetColor(133,667))
 		}
-		fourkdata:=CreateDiffArray(buttoncolor, Ttwo)
+		fourkdata:=CreateDiffArray(buttoncolor, altcolr)
 		Send "{5 down}"
 		Sleep 25
 		Send "{5 up}"
-		fivekdata:=CreateDiffArray(buttoncolor, Ttwo)
+		fivekdata:=CreateDiffArray(buttoncolor, altcolr)
 		Send "{6 down}"
 		Sleep 25
 		Send "{6 up}"
-		sixkdata:=CreateDiffArray(buttoncolor, Ttwo)
+		sixkdata:=CreateDiffArray(buttoncolor, altcolr)
 		Send "{8 down}"
 		Sleep 25
 		Send "{8 up}"
-		eightkdata:=CreateDiffArray(buttoncolor, Ttwo)
+		eightkdata:=CreateDiffArray(buttoncolor, altcolr)
 		Send "{4 down}"
 		Sleep 25
 		Send "{4 up}"
@@ -284,7 +302,6 @@ GetSongData(mode:="all")
 		Sleep 25
 		Send "{Down Up}"
 		Sleep 300
-		snsg:=FetchSongname(songgroup, mode)
 		if mode="only"
 		{
 			snsg:=["Placeholder", songgroup]
@@ -292,8 +309,7 @@ GetSongData(mode:="all")
 			songgroup:="FIN"
 		}
 		AppendSongData(Generate_Chart_Data_debug(snsg[1], snsg[2], fourkdata, fivekdata, sixkdata, eightkdata), filename)
-		if not mode="only"
-			songgroup:=GetSongGroup()
+
 	}
 	Msgbox("Job finished!",,"T5")
 }
@@ -372,6 +388,8 @@ GetSongGroup(rec:=1)
 				Return "CM"
 			else 
 				Return "CV"
+		Case "0x212121":
+			Return "PLI"
 	}
 	if rec<10
 		Return GetSongGroup(++rec)
@@ -431,16 +449,21 @@ CreateSongNameDbFromSongList()
 {
 	try FileMove("DJMaxSongNames.db", "DJMaxSongNames_" . version . "_bak.db", 1) 
 	count:=0
-	loop Read "SongList.db","DJMaxSongNames.db"
-		loop parse A_Loopreadline, "`n"
-		{
-			str_arr := StrSplit(A_Loopreadline,";")
-			if str_arr.length>1
-				FileAppend(str_arr[1] . ";" str_arr[2] . "`n")
-				;FileAppend(CreateID(A_Loopreadline) . ";" . str_arr[1] . ";" str_arr[2] . "`n")
-			count++
-		}
-	Msgbox("File generation complete!`n Wrote " count " lines")
+	songlist := FileOpen("SongList.db", "r")
+	songnames:= FileOpen("DJMaxSongNames.db", "w")
+
+	while (!songlist.AtEOF)
+	{
+		str_arr := StrSplit(songlist.ReadLine(),";")
+		if str_arr.length>1
+			songnames.WriteLine(str_arr[1] ";" str_arr[2])
+			;songnames.WriteLine(CreateID(A_Loopreadline) ";" str_arr[1] ";" str_arr[2])
+		count++
+	}
+	songnames.WriteLine("This line is needed by Song_Order_Numbers_New class!;ZZ")
+	songlist.close()
+	songnames.close()
+	Msgbox("File generation complete!`n Wrote " count+1 " lines")
 }
 
 ListSongPacks()
