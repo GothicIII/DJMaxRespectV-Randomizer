@@ -41,7 +41,7 @@ Numpad9::Song_Order_Numbers_New(1)
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.2.250219"
+Version:="2.2.250219a"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], charts:=chartsstat(), chartsmiss:=chartsstat(), globwparam:=""
 
 ; Create new settings file if it is missing
@@ -613,8 +613,8 @@ FunctionSort(first,last,*)
 	loop parse first
 	{
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))  
-		;if substr(last,1,8)="Misty E'" and charf<=82 and charl=39   ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
-		;	Return -1
+		if substr(last,1,8)="Misty E'" and charf<=82 and charl=39   ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
+			Return -1
 		
 		; moves first pos down
 		if ((charf!=59 and charl=59)
@@ -622,15 +622,17 @@ FunctionSort(first,last,*)
 		or (charf=45 and charl=46) ; Partial U-Nivus fix
 		or (charf=50 and charl=126) 	; Fix for SuperSonic [~] Mr against SuperSonic [2]011
 		or (charf=39 and charl!=39 and ord(substr(first,A_Index+1,1))>charl) ; Trying to ignore ' char and instead compare next char
-		or (charl=700 and ord(substr(first,A_Index+1,1))<ord(substr(last,A_Index+1,1)) ;fix I've got a feeling
-		or ((charf=76 or charf=82) and charl=9734))) ; fixes Love☆Panic
+		or (charl=700 and ord(substr(first,A_Index+2,1))<ord(substr(last,A_Index+1,1))) ;fix I've got a feeling
+		or ((charf=76 or charf=82) and charl=9734)) ; fixes Love☆Panic
 			Return 1
 
 		;moves first position up
 		if ((charf=59 and charl!=59)
-		or (charf=700) ; I've got a feeling
 		or (charl=45 and ord(substr(last,A_Index+1,1))>=charf) ; Fix for U-nivus
-		or (charl=39 and charf!=39 and (ord(substr(last,A_Index+1,1))>=charf and charf!=79))) ; Trying to ignore ' char and instead compare next char, exception O for Hell'o
+		or (charl=50 and charf=126) ; Fix for SuperSonic [~] Mr against SuperSonic [2]011
+		or (charl=39 and charf!=39 and (ord(substr(last,A_Index+1,1))>charf and charf!=79))		; Trying to ignore ' char and instead compare next char, exception O for Hell'o
+		or (charf=700 and ord(substr(last,A_Index+1,1))<ord(substr(first,A_Index+1,1))) ;fix I've got a feeling
+		or (charf=9734) and (charl=76 or charl=82)) ; fixes Love☆Panic
 			Return -1
 			
 		; Default sort
