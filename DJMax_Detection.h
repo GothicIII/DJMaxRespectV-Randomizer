@@ -17,7 +17,7 @@
 ;// Do not forget to disable HDR! Everything above a bitdepth of 8 can't be detected, because there are no win32 functions to achieve this task.
 ;//
 cm_packs:= [ "CH", "CY", "DE", "EZ", "GC", "MD"]
-cv_packs:= [ "GG", "ET", "FA", "GF", "MA", "NE", "TK" ]
+cv_packs:= [ "GG", "ET", "FA", "GF", "MA", "NE", "TK", "BA" ]
 pli_packs:=[ "PL1" ]
 refresh:=1 
 
@@ -345,7 +345,7 @@ GetSongGroup(rec:=1)
 	{
 		Case "0xEFB506":
 			Return "RE"
-		Case "0xFFAD00":
+		Case "0xFFAE00":
 			Return "RV"
 		Case "0x00B4D4":
 			Return "P1"	
