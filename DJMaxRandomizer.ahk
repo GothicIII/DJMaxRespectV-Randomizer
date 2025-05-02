@@ -837,48 +837,41 @@ GenerateSongTable()
 }
 
 ;Called when Edit menu is closed. Enables/Disables checkboxes
+;dlc.value - if DLC is owned or not (submenu)
+;songpacks - every dlc including the first 4 base DLC
+;element - songpack categories:
+;		<=maindlccount - all main DLC, each has its own checkbox so this value is variable
+;		<=musicdlccount - will be fixed songpacks.length-2 for CM
+;		<=varietydlccount - will be fixed songpacks.length-1 for CV
+;		else songpacks.length - for PLI
+;CM/CV/PLI each is combined into one checkbox. So the element for them is fixed.
 ModifySettings(*)
 {
 	skip:=0
-	;dlc is the value of the checkbox in submenu
 	for dlc in dlcpacks
 	{
-		;checks for maindlc, cm and cv. If more songpacks get added, the checkbox is not properly grayed out. Fix it here!
-		;currently there are 6 songpacks for cm, so A_Index<=maindlccount+6 is the check for it
+		;checks for maindlc, cm and cv. Songpacks checkboxes not properly grayed out? Fix it here!
 		element := (A_Index<=maindlccount ? A_Index+4 : (A_Index<=musicdlccount ? songpacks.length-2: (A_Index<=varietydlccount ? songpacks.length-1:songpacks.length)))
-		;
 		
-		if skip=1 and element<=musicdlccount
-			continue
 		;if dlc.value=1
 		;	Msgbox(dlc.value "," dlc.text "," element )
-		;
-		if dlc.value=0
+		
+		; fix for CM/CV
+		if A_Index=maindlccount+1 or A_Index=musicdlccount+1 or A_Index=varietydlccount+1
+			skip:=0
+		
+		if dlc.value=1 and skip=0
+		{
+			songpacks[element].value:=1
+			songpacks[element].enabled:=1
+			if element>maindlccount
+				skip:=1
+		}
+		else if skip=0
 		{
 			songpacks[element].value:=0
 			songpacks[element].enabled:=0
-		}
-		else
-		{
-		;Msgbox("Else: " element "," songpacks.length ", sp_old" songpacks[element].value)
-			songpacks[element].value:=1
-			songpacks[element].enabled:=1
-			;fix for PLI
-			if element=songpacks.length
-				break
-			;fix for CV
-			if element=songpacks.length-1 and element<=varietydlccount
-			{
-				skip:=1 
-				continue
-			}
-			;fix for CM
-			if element=songpacks.length-2 and element<=musicdlccount
-			{
-				skip:=1 
-				continue
-			}
-		}
+		}	
 	}
 	Checkfilter()
 }
