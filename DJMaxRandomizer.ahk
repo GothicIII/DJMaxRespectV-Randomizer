@@ -50,7 +50,7 @@ try
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.3.250428"
+Version:="2.3.250428a"
 songpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
 
 ; Create new settings file if it is missing
@@ -848,7 +848,7 @@ ModifySettings(*)
 		element := (A_Index<=maindlccount ? A_Index+4 : (A_Index<=musicdlccount ? songpacks.length-2: (A_Index<=varietydlccount ? songpacks.length-1:songpacks.length)))
 		;
 		
-		if skip=1 and element<musicdlccount
+		if skip=1 and element<=musicdlccount
 			continue
 		;if dlc.value=1
 		;	Msgbox(dlc.value "," dlc.text "," element )
