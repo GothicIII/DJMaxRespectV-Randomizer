@@ -53,7 +53,7 @@ try
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.4.250615"
+Version:="2.4.250728a"
 songpacks:=[], subsongpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
 ; Create new settings file if it is missing
 try 
@@ -307,7 +307,7 @@ SetFilter("ak",0)
 if A_Args.length>0
 	Receive_Connection_Data(A_Args[1])
 
-NumpadAdd::
+~NumpadAdd::
 {
 	try if WinGetProcessName("A")="DJMax Respect V.exe"
 	{
@@ -318,11 +318,7 @@ NumpadAdd::
 		WinActivate("DJMax Respect V Freeplay")
 	}
 	else
-		try 
-		{
-			WinMove(0,0,,,"ahk_exe DJMax Respect V.exe")
-			WinMaximize("ahk_exe DJMax Respect V.exe")
-		}
+		WinMaximize("ahk_exe DJMax Respect V.exe")
 }
 ^F2::CacheSongSelection()
 F2::try RollSong(songpacks, kmode, diffmode, mindiff, maxdiff)
