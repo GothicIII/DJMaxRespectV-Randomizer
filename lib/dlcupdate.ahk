@@ -128,12 +128,12 @@ FunctionSort(first,last,*)
 	
 	loop parse first
 	{
-		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))  
-		if substr(last,1,8)="Misty E'" and charf<=82 and charl=39   ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
-			Return -1
+		
+		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))   
+		if substr(first,1,8)="Misty E'" and substr(last,1,8)="Misty Er" ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
+			Return 1
 		; moves first pos down
 		if ((charf!=59 and charl=59)
-		;or (charf=32 and charl=700)
 		or (charf=45 and charl=68)	; Fixes Para[d]ise against Para[-]Q
 		or (charf=45 and charl=46) ; Partial U-Nivus fix
 		or (charf=50 and charl=126) 	; Fix for SuperSonic [~] Mr against SuperSonic [2]011
@@ -151,7 +151,7 @@ FunctionSort(first,last,*)
 		or (charl=45 and ord(substr(last,A_Index+1,1))>=charf) ; Fix for U-nivus
 		or (charl=50 and charf=126) ; Fix for SuperSonic [~] Mr against SuperSonic [2]011
 		or (charl=39 and charf!=39 and (ord(substr(last,A_Index+1,1))>charf and charf!=79))		; Trying to ignore ' char and instead compare next char, exception O for Hell'o	
-		or (charf=700) ; fix part 2, yes that's right 
+		or (charf=700) and charl!=32 ; fix part 2, yes that's right 
 		or (charf=9734) and (charl=76 or charl=82)) ; fixes Love☆Panic
 		{
 			;if substr(first,1,18)="IʼVE GOT A FEELING" or substr(last,1,18)="IʼVE GOT A FEELING"
