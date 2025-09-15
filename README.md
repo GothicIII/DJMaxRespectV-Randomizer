@@ -40,7 +40,7 @@
     Download a copy from this repository and extract it.
     Download AHK v2 beta from autohotkey.com and put it into the same folder
     where the extracted repository is. Drag the .ahk onto the executable.
-    StreamDeck is only supported as a compiled .exe!.
+    StreamDeck is only supported as a compiled .exe!
   
   ### Method B (Self compiled .exe):
     Follow METHOD A and use the ahk2exe inside the UX folder to compile a .exe yourself.
@@ -63,7 +63,7 @@
   <img width="400" alt="OptionsDLC" src="https://github.com/user-attachments/assets/3352a1e4-2062-4e99-8925-f11f5e1c07c6" />
   
   If your bought DLCs do not match here then the randomizer won't work properly and song selection will be always wrong!
-  The 'All'-checkboxes will toggle everything at once saving you a bit of time
+  The 'All'-checkboxes will toggle everything at once saving you a bit of time.
   You may also go to the general tab and play with the options around there.
 
   Run the game and enter Freestyle-Mode. Make sure 'All Tracks' tab is selected and the sorting scheme is 'Title A-Z'. I am trying to bring
