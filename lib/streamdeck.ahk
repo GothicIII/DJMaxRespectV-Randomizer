@@ -1,11 +1,19 @@
-Close_Connection(wParam)
+Close_Connection(wParam, msg:=1)
 {
 	try Send_WM_Copydata(";;;;;Destroy", wParam)
-	statusbar.SetText("Connection to StreamDeck closed!")
+	if msg
+		statusbar.SetText("Connection to StreamDeck closed!")
+	else
+		statusbar.SetText("Connection to StreamDeck rejected!")
 }
 
 Receive_Connection_Data(wParam,*)
 {
+	if !sdsupport.value
+	{
+		Close_Connection(wParam,0)
+		Return
+	}
 	statusbar.SetText("Connection to StreamDeck established!")
 	if globwparam and globwparam!=wParam
 	{
