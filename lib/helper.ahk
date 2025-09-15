@@ -21,27 +21,31 @@ ArrToStr(arr,min:=1,max:=0)
 }
 
 ; Prints order of internal db songs. Useful to debug sorting function
-DebugFunc(name, order, songpack)
+; Please make sure that all available songpacks are selected!
+DebugFunc(cnt, name, order, songpack)
 {
-	static orderstr:=""
-	if orderstr!="" and order=1
+	static orderstr:="", debugcnt:=1
+	if debugcnt=cnt
 	{
-		FileAppend(orderstr, "InternalDB.db","UTF-8")
-		;MsgBox(orderstr " : " order " : " name)
-		orderstr:=""	
+		;Msgbox(this.name "," this.order "," songgroup)
+		if orderstr!="" and order=1
+		{
+			FileAppend(orderstr, "InternalDB.db","UTF-8")
+			;MsgBox(orderstr)
+			orderstr:=""
+		}	
+		;Makes harder to compare versions:
+		;orderstr := orderstr . name . "," . order . "," . songpack . "`n"
+		orderstr .= name "," songpack "`n"
+		debugcnt++
 	}
-	;Makes harder to compare versions:
-	;orderstr := orderstr . name . "," . order . "," . songpack . "`n"
-	orderstr := orderstr . name "," songpack "`n"
-	; order here is max number of Z songs
-	if order=5 and substr(name,1,1)="Z"
+
+	if debugcnt>2 and cnt=1
 	{
 		FileAppend(orderstr, "InternalDB.db","UTF-8")
 		;MsgBox(orderstr)
-		ExitApp(0)
+		debugcnt:=0
 	}
-	if substr(name,1,1)="Z"
-		ExitApp
 }
 
 ; Helper Function to initialize arrays
