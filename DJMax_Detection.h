@@ -1,5 +1,5 @@
 ;// Library to generate SongList.db
-;// Version 1.3.250219
+;// Version 1.5.250915
 ;// Prerequisites
 ;// 
 ;// SongNames.db - ';' seperated csv with song names and addon short name
@@ -16,10 +16,44 @@
 ;// This library is not able to fetch data consistently so manual intervention is neccessary to produce all results.
 ;// Do not forget to disable HDR! Everything above a bitdepth of 8 can't be detected, because there are no win32 functions to achieve this task.
 ;//
-cm_packs:= [ "CH", "CY", "DE", "EZ", "GC", "MD"]
+cm_packs:= [ "CH", "CY", "DE", "EZ", "GC", "MD", "AR"]
 cv_packs:= [ "GG", "ET", "FA", "GF", "MA", "NE", "TK", "BA" ]
-pli_packs:=[ "PL1" ]
+pli_packs:=[ "PL2" ]
 refresh:=1 
+
+; <DEBUG FUNCTIONS>
+Numpad3::Reload()
+; Main header for debug/recording functions
+; (ALT)
+!Numpad1::GetSongData("all")
+
+; (CTRL) Start detecting song Data from current selected songpack tab (not all songs tab!). Writes to SongList.db.
+^Numpad1::GetSongData("pack")
+
+; do it only for current line. Does not add Songname!
+Numpad1::GetSongData("only")
+;
+;Returns all difficulty banner colors and DLC banner color. Useful for new songpacks.
+Numpad2::GetSongGroupColor()
+
+; Function to quickly test if all songpacks are properly loaded. 1st column shows if it is on or off
+Numpad4::ListSongPacks()
+
+; Function call testing if fetching the songname works. Repeated calls should return the next song from this songpack.
+Numpad5::Msgbox(FetchSongName("ES").Get(1))
+!Numpad5::Msgbox(FetchSongName("CM").Get(1))
+;Numpad5::FetchSongName("ES")
+
+;Generates Songname.db from SongList.db
+Numpad6::CreateSongNameDbFromSongList()
+
+Numpad7::Msgbox(EvaluateSongGroup("PL1",0))
+
+Numpad8::Msgbox(PixelGetColor(1008,200))
+
+; Quickly shows songpack bounderies. They are directly taken from SongNames db. Add new cm/cv songpacks in global section of Detection.h!
+Numpad9::Song_Order_Numbers_New(1)
+try (FileDelete("InternalDB.db"))
 
 
 ;// Chart data definition in memory
@@ -105,7 +139,7 @@ AppendSongData(songobject, filename:="SongList_New.db"){
 CreateDiffArray(buttoncolor, altcolr)
 {
 	buttoncolorTtwo:=["0xFFBA00", "0xFD6306", "0xFF00D8", "0xFF0042"]
-	buttoncolorpli:=["0xE0D4BC", "0xDED5BC", "0xE0D4BC", "0xE0D5B8"]
+	buttoncolorpli:=["0xE2D5B6", "0xE0D4BA", "0xE2D5B6", "0xE0D4BA"]
 	xbuttondiffpos:=[133,293,453,613]
 	y:=667
 	diff_arr:=[]
@@ -204,10 +238,10 @@ FetchSongname(SongGroup)
 }
 
 ;// Main function. Collects all data and sends it for writing into songlist.db
-GetSongData(mode:="all")
+GetSongData(mode:="all",songgroup:=GetSongGroup())
 {
 	global globpause
-	lastsonggroup:=songgroup:=GetSongGroup(), filename:=""
+	lastsonggroup:=songgroup, filename:=""
 	while songgroup!="FIN"
 	{
 		WinActivate("ahk_exe DJMax Respect V.exe")
@@ -217,7 +251,7 @@ GetSongData(mode:="all")
 			lastsonggroup:=songgroup
 		}
 		altcolr:=0
-		if (snsg:=FetchSongname(songgroup)).Get(1)="STOP" or pixelgetcolor(133,667)="0x13291B"
+		if ((snsg:=FetchSongname(songgroup)).Get(1)="STOP" and snsg[2]="NOW") or pixelgetcolor(133,667)="0x13291B"
 		{
 			if mode="pack" or mode="only"
 			{
@@ -243,7 +277,7 @@ GetSongData(mode:="all")
 			Case "P2":
 				buttoncolor := "0xFF1E1E"
 			Case "P3":
-				buttoncolor := "0xFBBD00"
+				buttoncolor := "0xFCAC00"
 			Case "TR":
 				buttoncolor := "0x7289FF"
 			Case "BS":
@@ -257,11 +291,13 @@ GetSongData(mode:="all")
 			Case "V4":
 				buttoncolor := "0xBD000F"
 			Case "V5":
-				buttoncolor := "0xFFB71E"
+				buttoncolor := "0xFFA90F"
 			Case "VL":
 				buttoncolor := "0xFFF650"
 			Case "VL2":
 				buttoncolor := "0x99FF33"
+			Case "VL3":
+				buttoncolor := "0xF26E7B"
 			Case "ES":
 				buttoncolor := "0x1AD10B"
 			Case "T1":
@@ -345,46 +381,48 @@ GetSongGroup(rec:=1)
 	{
 		Case "0xEFB506":
 			Return "RE"
-		Case "0xFFAE00":
+		Case "0xFFAD00", "0xFFAE00":
 			Return "RV"
 		Case "0x00B4D4":
 			Return "P1"	
 		Case "0xFF1D77":
 			Return "P2"	
-		Case "0xFBBD00":
+		Case "0xFBBD00", "0xFABC00":
 			Return "P3"	
-		Case "0x7F97FF":
+		Case "0x7F97FF", "0x7F97FE":
 			Return "TR"
 		Case "0xFFFFFF":
 			Return "CL"
-		Case "0xEC0043":
+		Case "0xEC0043", "0xEC0042":
 			Return "BS"
 		Case "0xFB721E":
 			Return "V1"
 		Case "0xBA3955":
 			Return "V2"
-		Case "0x691AC4":
+		Case "0x691AC4", "0x681AC4":
 			Return "V3"
-		Case "0xBF000E":
+		Case "0xBF000E", "0xBE000E":
 			Return "V4"
-		Case "0xFFA80C":
+		Case "0xFFA80C", "0xFFA509":
 			Return "V5"		
-		Case "0x48F7F8":
+		Case "0x48F7F8", "0x48F8FA":
 			Return "VL"		
 		Case "0x99FF33":
-			Return "VL2"	
+			Return "VL2"
+		Case "0xF26E7B","0xF26E7A":
+			Return "VL3"
 		Case "0x34DF26":
 			Return "ES"
 		Case "0xF21CC7":
 			Return "T1"
-		Case "0x10D9D6":
+		Case "0x10D9D6","0x10D8D1":
 			Return "T2"
 		Case "0x514DF5":
 			Return "T3"
 		Case "0xBBBBBB":
 			Return "TQ"	
-		Case "0x4C4C4C":
-			if PixelGetColor(1008,200)="0xBABABA"
+		Case "0xA8A8A8":
+			if PixelGetColor(1008,200)="0xFFFFFF"
 				Return "CM"
 			else 
 				Return "CV"
@@ -483,6 +521,7 @@ GetSongGroupColor(){
 		. "`nButton Color MX:" . PixelGetColor(453,667)
 		. "`nButton Color SC:" . PixelGetColor(613,667)
 		)
+	;Msgbox(GetSongGroup())
 }
 
 ;// It does not work for real CRC32
