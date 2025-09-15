@@ -29,7 +29,7 @@
     In the PS4-Era some songs were only unlocked (like the extended mix versions) if a few specific DLCs are bought.
     This could mess up the randomizer table making code changes a necessity (aka releasing a new version). I try my best, though.
   - The game sometimes eats inputs, depending on CPU load, star constellations etc, so the target chart is not hit (0,X% chance).
-    For this there is an keydelay option which can be set higher to maybe reduce problem.
+    For this there is an keydelay option which can be set higher to maybe reduce this problem (the default 25ms is already very good tested) .
     You can also try CTRL+F2 to reroll the current chart to see if it was just a miss.
     If it misses everytime please recheck enabled DLC in options and open an issue if it still doesn't work.
 
