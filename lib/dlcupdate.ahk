@@ -64,24 +64,29 @@ EvaluateSongGroup(sg, dlc:=1)
 			val:=26
 		Case "MD":
 			val:=27
-		Case "GG":
+		Case "AR":
 			val:=28
-		Case "BA":
+		Case "GG":
 			val:=29
-		Case "ET":
+		Case "BA":
 			val:=30
-		Case "FA":
+		Case "ET":
 			val:=31
-		Case "GF":
+		Case "FA":
 			val:=32
-		Case "MA":
+		Case "GF":
 			val:=33
+		Case "MA":
+			val:=34
 		Case "NE":
-			val:=34				
+			val:=35				
 		Case "TK":
-			val:=35	
+			val:=36	
 		Case "PL1":
-			val:=36
+			val:=37
+		Case "PL2":
+			val:=38
+		
 		Default:
 			MsgBox("Invalid Songgroup! Data corrupted? sg: " . sg)
 			ExitApp
@@ -111,7 +116,7 @@ FunctionSort(first,last,*)
 	;if substr(first,1,4)="Love" and substr(panic[1],-5)="Panic"
 	;	Msgbox(first "`n" strlen(panic[1]) "`n" ord(substr(panic[1],5,1)))
 	;dbg:=0
-	;chr(32) space, chr(45) -, chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~
+	;chr(32) space, chr(45) -, chr(46) ., chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~, chr(214) Ö
 	first := strupper(first), last:=strupper(last)
 	
 	; Needed for Misty E'ra vs O'men
@@ -121,21 +126,23 @@ FunctionSort(first,last,*)
 ; ULTRA FAIL	
 	;fixing Alone against Alone
 	if (substr(first,1,5)="ALONE" and substr(last,1,5)="ALONE")
-		or (substr(first,1,8)="SHOWDOWN" and substr(last,1,8)="SHOWDOWN")
+		or (substr(first,1,4)="STOP" and substr(last,1,4)="STOP")
 		Return -1
-	if substr(last,1,3)="U-N" and Substr(first,1,4)="Unwe"
+	if (substr(first,1,8)="SHOWDOWN" and substr(last,1,8)="SHOWDOWN")
 		Return 1
-	
+	;if substr(last,1,3)="U-N" and Substr(first,1,4)="Unwe"
+	;	Return 0
 	loop parse first
 	{
-		
-		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))   
+		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))
 		if substr(first,1,8)="Misty E'" and substr(last,1,8)="Misty Er" ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
 			Return 1
 		; moves first pos down
 		if ((charf!=59 and charl=59)
+		or (charl=214 and charf=79 and ord(substr(first,A_Index+1,1))>=83 and ord(substr(first,A_Index+3,1))<=68)
 		or (charf=45 and charl=68)	; Fixes Para[d]ise against Para[-]Q
-		or (charf=45 and charl=46) ; Partial U-Nivus fix
+		or (charf=45 and ord(substr(last,A_Index+1,1))=68)
+		or (charf=45 and charl=78 and ord(substr(first,A_Index+1,1))=87) ; Partial U-Nivus fix
 		or (charf=50 and charl=126) 	; Fix for SuperSonic [~] Mr against SuperSonic [2]011
 		or (charf=39 and charl!=39 and ord(substr(first,A_Index+1,1))>charl) ; Trying to ignore ' char and instead compare next char
 		or (charf!=32 and charl=700) ;fix I've got a feeling
@@ -148,6 +155,7 @@ FunctionSort(first,last,*)
 
 		;moves first position up
 		if ((charf=59 and charl!=59)
+		or (charl=79 and charf=214)
 		or (charl=45 and ord(substr(last,A_Index+1,1))>=charf) ; Fix for U-nivus
 		or (charl=50 and charf=126) ; Fix for SuperSonic [~] Mr against SuperSonic [2]011
 		or (charl=39 and charf!=39 and (ord(substr(last,A_Index+1,1))>charf and charf!=79))		; Trying to ignore ' char and instead compare next char, exception O for Hell'o	
@@ -232,24 +240,28 @@ RetLongSG(sg)
 			Return dlcpacks[22].Text
 		case "MD":
 			Return dlcpacks[23].Text
-		case "GG":
+		case "AR":
 			Return dlcpacks[24].Text
-		case "BA":
+		case "GG":
 			Return dlcpacks[25].Text
-		case "ET":
+		case "BA":
 			Return dlcpacks[26].Text
-		case "FA":
+		case "ET":
 			Return dlcpacks[27].Text
-		case "GF":
+		case "FA":
 			Return dlcpacks[28].Text
-		case "MA":
+		case "GF":
 			Return dlcpacks[29].Text
-		case "NE":
+		case "MA":
 			Return dlcpacks[30].Text
-		case "TK":
+		case "NE":
 			Return dlcpacks[31].Text
-		case "PL1":
+		case "TK":
 			Return dlcpacks[32].Text
+		case "PL1":
+			Return dlcpacks[33].Text
+		case "PL2":
+			Return dlcpacks[34].Text
 		Default:
 			Return sg
 	}
