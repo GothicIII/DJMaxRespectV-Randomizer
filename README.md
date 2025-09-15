@@ -40,6 +40,7 @@
     Download a copy from this repository and extract it.
     Download AHK v2 beta from autohotkey.com and put it into the same folder
     where the extracted repository is. Drag the .ahk onto the executable.
+    StreamDeck is only supported as a compiled .exe!.
   
   ### Method B (Self compiled .exe):
     Follow METHOD A and use the ahk2exe inside the UX folder to compile a .exe yourself.
@@ -123,12 +124,15 @@
 
   When the StreamDeck is ready and the path to the DJMaxRandomizer.exe is known to the plugin, the middle tile will
   run the randomizer and at the same time tries to communicate with it. Please make sure the StreamDeck support-option is enabled!
+  
   The plugin checks if Administration rights are needed or not and will inform you when something fails. Otherwise
   if everything is alright the middle tile will have a green checkmark on it and is ready to go.
-  (If the path to the ramdomizer is not known please start it manually. Afterwards press the middle tile to initiate a connection.)
-  Of course pressing 'F4' to exclude the chart will be shown too. You'll have roughly 3 seconds to cancel the process by
-  pressing 'F4' again. This will be reflected by a 'X' or a checkmark if excluded.
+  (If the path to the randomizer is not known please start it manually. Afterwards press the middle tile to initiate a connection.)
+
   Rolling the song now with 'F2' will show every data on the StreamDeck titles.
+  
+  Of course pressing 'F4' to exclude the chart will be shown too. You'll have roughly 3 seconds to cancel the process by pressing 'F4' again.
+  This will be reflected by a 'X' or a checkmark if excluded.
   
   <img width="500" alt="SD_02" src="https://github.com/user-attachments/assets/b4a8e363-84de-47f1-b8ec-399523717e1e" />
 
