@@ -52,7 +52,7 @@
 
 ## FIRST RUN
   Please make sure that SongList.db is in the same directory as the program.
-  When running the 1st time some info messages will appear and the program creates files/folder to run properly.
+  When running the 1st time some info messages will appear and the program creates files/folders to run properly.
   
   <img width="400" alt="FirstRun" src="https://github.com/user-attachments/assets/488e220d-4b98-4b34-9c0c-6962cfd64989" />
   
