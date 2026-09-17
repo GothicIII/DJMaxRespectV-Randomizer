@@ -1,0 +1,54 @@
+DJMax Randomizer changelog
+v2.9
+
+ToDo:
+-Longer playsessions with exclude charts somehow mess up the memory db. It rolled 8k HD for A[UE]OON despite NM not cleared.
+		-> Idea: Output whole database into file (charts object?)
+-Random is not random enough - some songs are only rolled as 'last resort'
+
+- UI improvements:
+	+ Filter options now only updated when changes from owning DLC is registered
+	+ Stats will now show accumulated changes for the current session
+- Added all missing DLC data for Dungeon&Fighter, VL4/VL5, O.N.G.E.K.I., PLI packs and free RV songs converted from Season Pass
+- Hundreds of difficulty changes are now included (+ new SC difficulties).
+- Code optimizations:
+	+ Sorting function overhaul
+	+ Debugging vars added
+	+ Recording functions improved and compatible with all DLC, now easier to implement new DLC
+- Fix: Same name songs are now unique to circumvent unneccessary sort changes every patch
+- Fix: Stats were not updated immediatly
+- Updated AHK core to v2.1
+
+v2.6
+- Code structuring improved
+- Added new Option: Keys
+	+ New Option: Key-rebindings for all Hotkey functions. Modifier keys supported.
+	+ New Option: Toggle Passthrough keys - pressed keys will trigger functions and its key.
+- Bugfix: progression option only updates on restart
+- Minor code optimizations
+
+v2.5
+- Options overhaul, now more structured
+- Added many new options. Currently, some lack implementation.
+	+ Option: En-/Disable usage of DJMaxExcludeCharts.db
+	+ Option: higher diff. charts are only available if lower diff. charts are excluded (F4)
+	+ Option: Toggle StreamDeck support
+- Error messages are a bit more useful now
+- Minor code optimizations
+- Finalizing some StreamDeck shaningans
+- Added Arcaea DLC data
+- Sorting reviewed and fixed
+- 
+
+- Usual DLC update. This time VL3.
+- Added Filter options for CM/CV/PLI Packs. Access the menu by right-clicking on to the CM/CV/PLI Checkboxes
+- Code refracturing
+- fixed a small issue with CacheSongSelection
+- Welcome message is back again :)
+- CM/CV/PLI boxes are now able to be graychecked. This will visualize that some dlcpacks are disabled. Toggling them
+	will enable/disable all dlcpacks in that category
+- All submenus are now toggable
+- Bitmaps are stored inside libraries. Currently I have to save the images into a real file. I'll look into it to skip this step
+	until then everything is stored under the folder ./png
+- Reworked some GUI elements
+- Fixed a small issuen with the StreamDeck lib which resulted in continuues restarts

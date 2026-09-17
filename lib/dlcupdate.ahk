@@ -1,3 +1,49 @@
+num:=1, sp:=Map(
+	"RE",num++,
+	"RV",num++,
+	"P1",num++,
+	"P2",num++,
+	"P3",num++,
+	"TR",num++,
+	"CL",num++,
+	"BS",num++,
+	"V1",num++,
+	"V2",num++,
+	"V3",num++,
+	"V4",num++,
+	"V5",num++,
+	"VL",num++,
+	"VL2",num++,
+	"VL3",num++,
+	"VL4",num++,
+	"VL5",num++,
+	"ES",num++,
+	"T1",num++,
+	"T2",num++,
+	"T3",num++,
+	"TQ",num++,
+	"AR",num++,
+	"CH",num++,
+	"CY",num++,
+	"DE",num++,
+	"EZ",num++,
+	"GC",num++,
+	"MD",num++,
+	"ON",num++,
+	"GG",num++,
+	"BA",num++,
+	"DF",num++,
+	"ET",num++,
+	"FA",num++,
+	"GF",num++,
+	"MA",num++,
+	"NE",num++,
+	"TK",num++,
+	"PL1",num++,
+	"PL2",num++,
+	"PL3",num++,
+	"PL4",num++)
+
 ;Helper function to get value in dlcpack/songpack Array from songgroup String
 ;DLC=0 means it only returns if the given songpack is enabled/disabled
 ;DLC=1 means it returns if the given songpack is enabled/disabled and if it is maindlc/cm/cv
@@ -8,93 +54,16 @@
 ;Return 6/7 PLI - Playlist packs (off/on)
 EvaluateSongGroup(sg, dlc:=1)
 {
-	Switch sg
+	if !sp.Has(sg)
 	{
-		Case "RE":
-			val:=1
-		Case "RV":
-			val:=2
-		Case "P1":
-			val:=3
-		Case "P2":
-			val:=4
-		Case "P3":
-			val:=5
-		Case "TR":
-			val:=6
-		Case "CL":
-			val:=7
-		Case "BS":
-			val:=8
-		Case "V1":
-			val:=9
-		Case "V2":
-			val:=10
-		Case "V3":
-			val:=11
-		Case "V4":
-			val:=12
-		Case "V5":
-			val:=13
-		Case "VL":
-			val:=14
-		Case "VL2":
-			val:=15
-		Case "VL3":
-			val:=16
-		Case "ES":	
-			val:=17
-		Case "T1":
-			val:=18
-		Case "T2":
-			val:=19
-		Case "T3":
-			val:=20
-		Case "TQ":
-			val:=21
-		Case "CH":
-			val:=22
-		Case "CY":
-			val:=23
-		Case "DE":
-			val:=24
-		Case "EZ":	
-			val:=25
-		Case "GC":
-			val:=26
-		Case "MD":
-			val:=27
-		Case "AR":
-			val:=28
-		Case "GG":
-			val:=29
-		Case "BA":
-			val:=30
-		Case "ET":
-			val:=31
-		Case "FA":
-			val:=32
-		Case "GF":
-			val:=33
-		Case "MA":
-			val:=34
-		Case "NE":
-			val:=35				
-		Case "TK":
-			val:=36	
-		Case "PL1":
-			val:=37
-		Case "PL2":
-			val:=38
-		
-		Default:
-			MsgBox("Invalid Songgroup! Data corrupted? sg: " . sg)
-			ExitApp
+		MsgBox("Invalid Songgroup! Data corrupted? sg: " . sg)
+		ExitApp
 	}
+	val:=sp.Get(sg)
 	if dlc=1
 	{
 		;// RE,RV,P1,P2
-		if val<=4
+		if sp.Get(sg)<=4
 			Return 1
 		Return dlcpacks[val-4].value + (val>varietydlccount+4?6:(val>musicdlccount+4?4:(val>maindlccount+4?2:0)))
 	}
@@ -103,87 +72,141 @@ EvaluateSongGroup(sg, dlc:=1)
 }
 
 ; Extends default sorting function since DJMax has a weird song sorting scheme 
-	; Problematic songs:
-	; Urban Night 2x
-	; A lie <-> A lie ~deep inside mix~
-	; I've got a feeling has now 1370 Unicode
-	; We're gonna die <-> welcome to the space
-	; U-nivus
 FunctionSort(first,last,*)
 {
-	; All song conditions must be here twice. Once for charf and for charl.
-	;panic:=strsplit(first,";")
-	;if substr(first,1,4)="Love" and substr(panic[1],-5)="Panic"
-	;	Msgbox(first "`n" strlen(panic[1]) "`n" ord(substr(panic[1],5,1)))
-	;dbg:=0
+	offset:=0, nodefault:=0
+	first:=strupper(first), last:=strupper(last)
+	
+	;Exceptions
+	if substr(first,1,8)="MISTY ER" and substr(last,1,8)="MISTY E'"
+		Return [ 32, 32, 99, 1 ]
+	
+	loop parse first
+	{
+		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index-offset,1))
+		
+		; skips "'" and "-" when comparing
+		if (charf=39 and charl!=39) or (charf=45 and charl!=45)
+		{
+			offset++
+			continue
+		}
+		if (charl=39 and charf!=39) or (charf!=45 and charl=45)
+		{
+			offset--
+			charl:=charl:=ord(substr(last,A_Index-offset,1))
+		}
+		
+		; Handles ";", "ʼ" and "~"
+		if charf=59 or (charf=700 and charl!=32) or (charf=126 and charl=50)
+			Return [ charf, charl, offset, -1 ]
+		if charl=59 or (charf!=32 and charl=700) or (charf=50 and charl=126)
+			Return [ charf, charl, offset, 1 ]	
+
+		;Overwrites chars "Ö" and "☆" for comparison
+		if charf=214
+			charf:=79, nodefault:=1
+		if charl=214
+			charl:=79, nodefault:=1
+		if charf=9734
+			charf:=46, nodefault:=1
+		if charl=9734
+			charl:=46, nodefault:=1
+		if charf!=charl
+		{
+			if !offset and !nodefault
+				Return [ charf, charl, offset, 0 ]
+			else
+				Return [ charf, charl, offset, (charf-charl<0?-1:1) ]
+		}
+	}
+}
+
+Callback(first, last, *)
+{
+	ret := FunctionSort(first,last)
+	;if (substr(first,1,4)="ALO" and substr(last,1,4)="ALO") and !A_IsCompiled
+	;	Msgbox(ret[1] "[" chr(ret[1]) "]:" ret[2] "[" chr(ret[2]) "]`n" (ret[4]?ret[4]=1?"↓":"↑":"") first (ret[4]?ret[4]=1?"↓":"↑":"") "`n" last "`nBack:" ret[3] "`nReturn: " (ret[4]?ret[4]:"default"))
+	Return ret[4]
+}
+
+; Extends default sorting function since DJMax has a weird song sorting scheme 
+/*FunctionSortOld(first,last,*)
+{
+	; All song conditions SHOULD be here twice. Once for charf and for charl.
 	;chr(32) space, chr(45) -, chr(46) ., chr(58) :, chr(59) ;, chr(39) ', chr(700) ʼ, chr(126) ~, chr(214) Ö
 	first := strupper(first), last:=strupper(last)
 	
 	; Needed for Misty E'ra vs O'men
-	firstsp:=StrSplit(first,";",,3)
-	lastsp:=StrSplit(last,";",,3)
+	;firstsp:=StrSplit(first,";",,3)
+	;lastsp:=StrSplit(last,";",,3)
+	; This lines where inside parse loop
+	;if substr(first,1,8)="Misty E'" and substr(last,1,8)="Misty Er" ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
+	;	Return 1
 
-; ULTRA FAIL	
-	;fixing Alone against Alone
+	;fixing songs with the same name
 	if (substr(first,1,5)="ALONE" and substr(last,1,5)="ALONE")
 		or (substr(first,1,4)="STOP" and substr(last,1,4)="STOP")
+		or (substr(first,1,4)="BURN" and substr(last,1,4)="BURN")
+		or (substr(first,1,7)="RIGHT B" and substr(last,1,7)="RIGHT B")
 		Return -1
+		
 	if (substr(first,1,8)="SHOWDOWN" and substr(last,1,8)="SHOWDOWN")
 		Return 1
-	;if substr(last,1,3)="U-N" and Substr(first,1,4)="Unwe"
-	;	Return 0
+		
 	loop parse first
 	{
+		
 		charf:=ord(A_Loopfield), charl:=ord(substr(last,A_Index,1))
-		if substr(first,1,8)="Misty E'" and substr(last,1,8)="Misty Er" ;  fixing "Misty E[r]'a" against "Misty E[']ra 'MUI'"
-			Return 1
+		
+		; Test here make later debug var and msgbox in return statements
+		;if (substr(first,1,3)="U-N" or substr(last,1,3)="U-N") and charl!=charf
+		;		Msgbox(A_Index ":" charf ":" charl "`n" first "`n" last "`n" (charf>charl?"Down":"Up"))
+					
 		; moves first pos down
 		if ((charf!=59 and charl=59)
 		or (charl=214 and charf=79 and ord(substr(first,A_Index+1,1))>=83 and ord(substr(first,A_Index+3,1))<=68)
-		or (charf=45 and charl=68)	; Fixes Para[d]ise against Para[-]Q
-		or (charf=45 and ord(substr(last,A_Index+1,1))=68)
-		or (charf=45 and charl=78 and ord(substr(first,A_Index+1,1))=87) ; Partial U-Nivus fix
-		or (charf=50 and charl=126) 	; Fix for SuperSonic [~] Mr against SuperSonic [2]011
+		;or (charf=50 and charl=126) 	; Fix for SuperSonic [~] Mr against SuperSonic [2]011
 		or (charf=39 and charl!=39 and ord(substr(first,A_Index+1,1))>charl) ; Trying to ignore ' char and instead compare next char
-		or (charf!=32 and charl=700) ;fix I've got a feeling
+		or (charf!=32 and charl=700) 	;fix I've got a feeling
 		or ((charf=76 or charf=82) and charl=9734)) ; fixes Love☆Panic
-		{
-			;if substr(first,1,18)="IʼVE GOT A FEELING" or substr(last,1,18)="IʼVE GOT A FEELING"
-			;	Msgbox(charf ":" charl "`n" first "`n" last "`n" 1)
 			Return 1
-		}
 
 		;moves first position up
 		if ((charf=59 and charl!=59)
 		or (charl=79 and charf=214)
-		or (charl=45 and ord(substr(last,A_Index+1,1))>=charf) ; Fix for U-nivus
+		or (charl=45 and charf=78 and substr(first,1,3)="UND") ; UNDO:U-nivus
 		or (charl=50 and charf=126) ; Fix for SuperSonic [~] Mr against SuperSonic [2]011
 		or (charl=39 and charf!=39 and (ord(substr(last,A_Index+1,1))>charf and charf!=79))		; Trying to ignore ' char and instead compare next char, exception O for Hell'o	
-		or (charf=700) and charl!=32 ; fix part 2, yes that's right 
+		or (charf=700) and charl!=32	;I've got a feeling
 		or (charf=9734) and (charl=76 or charl=82)) ; fixes Love☆Panic
-		{
-			;if substr(first,1,18)="IʼVE GOT A FEELING" or substr(last,1,18)="IʼVE GOT A FEELING"
-			;	Msgbox(charf ":" charl "`n" first "`n" last "`n" "-1")
 			Return -1
-		}
-			
+		
+		; Fixes most "-" by comparing next char, above fix is neccessary because iterations of parse don't have the logic to know that "-" was skipped
+		if charf=45
+			if ord(substr(first,A_Index+1,1))<charl
+				Return -1
+			else
+				Return 1
+		if charl=45
+			if ord(substr(last,A_Index+1,1))>charf
+				Return -1
+			else
+				Return 1
 		; Default sort
 		if charf!=charl
-		{
-			;if (substr(first,1,18)="IʼVE GOT A FEELING" or substr(last,1,18)="IʼVE GOT A FEELING") and charf=charl
-			;	Msgbox(charf ":" charl "`n" first "`n" last "`n" 0)
 			Return 0
-		}
-		;{
-		;	if substr(first,1,5)="Hell'" or substr(last,1,5)="Hell'"
-		;		Msgbox(first "`n" last "`nUp. because " charf ":" charl " or " ord(substr(first,A_Index+1,1)) ":" ord(substr(last,A_Index+1,1)) )
-		;	Return -1
-		;}	
 	}
 }
+*/
 
 RetLongSG(sg)
 {
+	if !sp.Has(sg)
+	{
+		MsgBox("Invalid Songgroup! sg: " . sg)
+		ExitApp
+	}
 	switch sg
 	{
 		case "RE":
@@ -194,75 +217,9 @@ RetLongSG(sg)
 			Return "Portable 1"
 		case "P2":
 			Return "Portable 2"
-		case "P3":
-			Return dlcpacks[1].Text
-		case "TR":
-			Return dlcpacks[2].Text
-		case "CL":
-			Return dlcpacks[3].Text
-		case "BS":
-			Return dlcpacks[4].Text
-		case "V1":
-			Return dlcpacks[5].Text
-		case "V2":
-			Return dlcpacks[6].Text
-		case "V3":
-			Return dlcpacks[7].Text
-		case "V4":
-			Return dlcpacks[8].Text
-		case "V5":
-			Return dlcpacks[9].Text
-		case "VL":
-			Return dlcpacks[10].Text
-		case "VL2":
-			Return dlcpacks[11].Text
-		case "VL3":
-			Return dlcpacks[12].Text
-		case "ES":
-			Return dlcpacks[13].Text
-		case "T1":
-			Return dlcpacks[14].Text
-		case "T2":
-			Return dlcpacks[15].Text
-		case "T3":
-			Return dlcpacks[16].Text
 		case "TQ":
 			Return "Technica Tune & Q"
-		case "CH":
-			Return dlcpacks[18].Text
-		case "CY":
-			Return dlcpacks[19].Text
-		case "DE":
-			Return dlcpacks[20].Text
-		case "EZ":
-			Return dlcpacks[21].Text
-		case "GC":
-			Return dlcpacks[22].Text
-		case "MD":
-			Return dlcpacks[23].Text
-		case "AR":
-			Return dlcpacks[24].Text
-		case "GG":
-			Return dlcpacks[25].Text
-		case "BA":
-			Return dlcpacks[26].Text
-		case "ET":
-			Return dlcpacks[27].Text
-		case "FA":
-			Return dlcpacks[28].Text
-		case "GF":
-			Return dlcpacks[29].Text
-		case "MA":
-			Return dlcpacks[30].Text
-		case "NE":
-			Return dlcpacks[31].Text
-		case "TK":
-			Return dlcpacks[32].Text
-		case "PL1":
-			Return dlcpacks[33].Text
-		case "PL2":
-			Return dlcpacks[34].Text
 		Default:
-			Return sg
+			Return dlcpacks[sp.Get(sg)-4].Text
 	}
 }

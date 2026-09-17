@@ -60,10 +60,15 @@ FillArr(count, data:=1)
 ; Used by Create_Table() - filling up small values with spaces
 fillhole(len)
 {
-	If len=3
-		Return " "
-	else if len=2
-		Return "  "
-	else 
-		Return "   "
+	Switch(len)
+	{
+		Case 3:
+			Return " "
+		Case 2:
+			Return "  "
+		Case 1:
+			Return "   "
+		Case 0:
+			Return "    "
+	}
 }
