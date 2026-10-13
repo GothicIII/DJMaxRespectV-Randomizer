@@ -1,10 +1,19 @@
 DJMax Randomizer changelog
-v2.9
+3.0
 
+- Fix: Excludebox better key handling and key was hardcoded to 'F4'
+- Fix: Racecondition with hotkey functions. chartsmemdb was probably messed up because of this.
+		Should this still not work, a full fix would be to en/disable other hotkeys while run.
+- Megingjord added to songlist.
+- UI:
+	- Fix: Rendering issues fixed in Stats. Now should correctly update values.
+	- New: Due to Megingjord being a hidden song there is now a checkbox for it
+		   alongside other songs with special unlock conditions under [DLC].
+
+v2.9
 ToDo:
 -Longer playsessions with exclude charts somehow mess up the memory db. It rolled 8k HD for A[UE]OON despite NM not cleared.
 		-> Idea: Output whole database into file (charts object?)
--Random is not random enough - some songs are only rolled as 'last resort'
 
 - UI improvements:
 	+ Filter options now only updated when changes from owning DLC is registered

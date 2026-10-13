@@ -1,48 +1,11 @@
-num:=1, sp:=Map(
-	"RE",num++,
-	"RV",num++,
-	"P1",num++,
-	"P2",num++,
-	"P3",num++,
-	"TR",num++,
-	"CL",num++,
-	"BS",num++,
-	"V1",num++,
-	"V2",num++,
-	"V3",num++,
-	"V4",num++,
-	"V5",num++,
-	"VL",num++,
-	"VL2",num++,
-	"VL3",num++,
-	"VL4",num++,
-	"VL5",num++,
-	"ES",num++,
-	"T1",num++,
-	"T2",num++,
-	"T3",num++,
-	"TQ",num++,
-	"AR",num++,
-	"CH",num++,
-	"CY",num++,
-	"DE",num++,
-	"EZ",num++,
-	"GC",num++,
-	"MD",num++,
-	"ON",num++,
-	"GG",num++,
-	"BA",num++,
-	"DF",num++,
-	"ET",num++,
-	"FA",num++,
-	"GF",num++,
-	"MA",num++,
-	"NE",num++,
-	"TK",num++,
-	"PL1",num++,
-	"PL2",num++,
-	"PL3",num++,
-	"PL4",num++)
+sp:=Map(), spacks:=[
+"RE","RV","P1","P2",
+"P3","TR","CL","BS","V1","V2","V3","V4","V5","VL","VL2","VL3","VL4","VL5","ES","T1","T2","T3","TQ",
+"AR","CH","CY","DE","EZ","GC","MD","ON",
+"GG","BA","DF","ET","FA","GF","MA","NE","TK",
+"PL1","PL2","PL3","PL4"]
+for pack in spacks
+	sp.Set(pack,A_Index)
 
 ;Helper function to get value in dlcpack/songpack Array from songgroup String
 ;DLC=0 means it only returns if the given songpack is enabled/disabled
@@ -219,6 +182,8 @@ RetLongSG(sg)
 			Return "Portable 2"
 		case "TQ":
 			Return "Technica Tune & Q"
+		case "DF":
+			Return "Dungeon & Fighter"
 		Default:
 			Return dlcpacks[sp.Get(sg)-4].Text
 	}

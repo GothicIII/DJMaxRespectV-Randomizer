@@ -1,7 +1,8 @@
 ;DJMax Respect V Randomizer
 ;Provided to you by GothicIII
 ;ToDo
-; - fix DLC reenabling songpacks when opening options by checking if checkbox status has been altered
+; Some kind of memory leak with the excluded chart data, after a while charts are excluded despite never been played. Restarting fixes it and they are not written back into the file.
+; Also some kind of leakage in table because the remained chart got very high negative numbers. Random.
 #include lib\dlcupdate.ahk
 #include lib\helper.ahk
 #include lib\hotkeys.ahk
@@ -17,12 +18,12 @@ try
 ; Variable initialization
 #NoTrayIcon
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="2.9.260917"
-songpacks:=[], subsongpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], settings:=[], songsdbmem:=[], globwparam:=""
+Version:="3.0.261013"
+songpacks:=[], subsongpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], special:=[], settings:=[], songsdbmem:=[], globwparam:=""
 
 ; Create new settings file if it is missing
 try
-	if (Iniread("DJMaxRandomizer.ini","config","version")!=Version)
+	if (SubStr(Iniread("DJMaxRandomizer.ini","config","version"),1,3)!=SubStr(Version,1,3))
 		throw ValueError()
 catch
 {
@@ -31,7 +32,7 @@ catch
 	Iniwrite("min=1`nmax=15`nkmodes=1111`ndifficulty=1111`nwinposx=null`nwinposy=null`nDJMExclude=1`nkeydelay=25`nSorting=1`nsd=0`nprogression=0`nversion=" . Version,"DJMaxRandomizer.ini", "config")
 	Iniwrite("roll=104`nreroll=404`ntoggle=194`nexclude=106`npassthrough=0", "DJMaxRandomizer.ini", "keys")
 	Iniwrite("packs=1111`nsubpacks=0", "DJMaxRandomizer.ini", "packs_selected")
-	Iniwrite("main=0`ncollmus=0`ncollvar=0`nplipak=0", "DJMaxRandomizer.ini", "dlc_owned")
+	Iniwrite("main=0`ncollmus=0`ncollvar=0`nplipak=0`nspecial=0", "DJMaxRandomizer.ini", "dlc_owned")
 }
 
 ; Options GUI Initializiation
@@ -62,9 +63,10 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Technika 3"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp+10", "Technica Tune && Q"))
 maindlccount:=dlcpacks.length
 DJMaxGuiSubMenu.Add("Text", "x20 y+10 w250 left","Collaboration").SetFont("Underline")
-DJMaxGuiSubMenu.Add("Text", "x20 y+ w150 left section","Music Packs:").SetFont("Underline")
-DJMaxGuiSubMenu.Add("Text", "x+ yp left","Variety Packs:").SetFont("Underline")
-DJMaxGuiSubMenu.Add("Text", "x+50 yp left","PLI Playlist Packs:").SetFont("Underline")
+DJMaxGuiSubMenu.Add("Text", "x20 y+ w150 left section","Music Packs").SetFont("Underline")
+DJMaxGuiSubMenu.Add("Text", "x+ yp left","Variety Packs").SetFont("Underline")
+DJMaxGuiSubMenu.Add("Text", "x+54 yp left","PLI Playlist Packs").SetFont("Underline")
+DJMaxGuiSubMenu.Add("Text", "x+27 yp left","Special Cases").SetFont("Underline")
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x20 y+ w150 section", "Arcaea"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Chunism"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Cytus"))
@@ -76,7 +78,7 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "O.N.G.E.K.I."))
 musicdlccount:=dlcpacks.length
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Guilty Gear"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Blue Archive"))
-dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Dungeon & Fighter"))
+dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Dungeon&&Fighter"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Estimate"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Falcom"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Girls' Frontline"))
@@ -88,8 +90,22 @@ dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys wp", "Tribute #1"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "65414 Part.1"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "Tribute #2"))
 dlcpacks.push(DJMaxGuiSubMenu.Add("Checkbox", "y+ wp", "65414 Part.2"))
-(dlcpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "x+ ys wp Checked", "All DLC")).OnEvent('Click', ToggleMainDLCSongPacks)
+(dlcpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "xp y+60 wp Checked", "All DLC")).OnEvent('Click', ToggleMainDLCSongPacks)
 (collabpacktoggle := DJMaxGuiSubmenu.Add("Checkbox", "y+ wp Checked", "All Coll/PLI")).OnEvent('Click', ToggleCollSongPacks)
+special.push(DJMaxGuiSubMenu.Add("Checkbox", "x+ ys +disabled", "Airwave ~Extended Mix~"))
+DJMaxGuiSubMenu.Add("Text", "xp y+ +Disabled", "    (Unlocks with CL and T1)")
+special.push(DJMaxGuiSubMenu.Add("Checkbox", "xp y+ +disabled", "Diomedes ~Extended Mix~"))
+DJMaxGuiSubMenu.Add("Text", "xp y+ +Disabled", "    (Unlocks with V Liberty 2)")
+special.push(DJMaxGuiSubMenu.Add("Checkbox", "xp y+ +disabled", "Flowering ~Original Ver.~"))
+DJMaxGuiSubMenu.Add("Text", "xp y+ +Disabled", "    (Unlocks with V Extension 1)")
+special.push(DJMaxGuiSubMenu.Add("Checkbox", "xp y+ +disabled", "Here in the Moment ~Extended Mix~"))
+DJMaxGuiSubMenu.Add("Text", "xp y+ +Disabled", "    (Unlocks with BS and T1)")
+special.push(DJMaxGuiSubMenu.Add("Checkbox", "xp y+ +disabled", "Karma ~Original Ver.~"))
+DJMaxGuiSubMenu.Add("Text", "xp y+ +Disabled", "    (Unlocks with V Extension 3)")
+special.push(DJMaxGuiSubMenu.Add("Checkbox", "xp y+", "Megingjord"))
+DJMaxGuiSubMenu.Add("Text", "xp y+ +Disabled", "    (Unlocks by playing DUKA and Sleipnir)")
+special.push(DJMaxGuiSubMenu.Add("Checkbox", "xp y+ +disabled", "SON OF SUN ~Extended Mix~"))
+DJMaxGuiSubMenu.Add("Text", "xp y+ +Disabled", "    (Unlocks with BS and CL)")
 tabu.UseTab(3)
 DJMaxGuiSubMenu.Add("Text", "x20 y45 left","Rebinding keys").SetFont("Underline")
 (keyrollmod:=DJMaxGuiSubMenu.Add("DropDownList", "x20 y+10 w70 left",modinputlst)).OnEvent('Change', (*)=>SetHk(keyrollmod.Value*100,FnKeyA))
@@ -124,6 +140,8 @@ DJMaxGuiSubMenu.Add("Text", "x20 y+10 left","Streamdeck").SetFont("Underline")
 tabu.UseTab()
 DJMaxGuiSubMenu.Add("Link", "x15 y+ left",'Latest version: <a href="https://github.com/GothicIII/DJMaxRespectV-Randomizer/releases">Release page on github</a>').SetFont("s8")
 DJMaxGuiSubMenu.Add("Text", "x+260 right", "v" Version).SetFont("s8")
+
+
 ;Main + Context GUI
 (DJMaxGui := Gui("","DJMax Respect V Freeplay Randomizer by GothicIII")).OnEvent('Close', SaveAndExit)
 DJMaxGui.SetFont("s12 q5")
@@ -206,7 +224,8 @@ guisongname	:= DJMaxGui.Add("Text", "x+ ys+52 w378 h30 section"," ")
 guisongname.SetFont("S10")
 guikmode		:= DJMaxGui.Add("Text", "xp y+ w30"," ")
 guidiff 		:= DJMaxGui.Add("Text", "x+ w30"," ")
-(excludebox := DJMaxGui.Add("Checkbox", "x+120 left","Exclude Chart? (F4)")).OnEvent('Click', (*)=>ExcludeChart(songid, kmod, songd))
+;(excludebox := DJMaxGui.Add("Checkbox", "x+120 left","Exclude Chart? (F4)")).OnEvent('Click', (*)=>ExcludeChart(songid, kmod, songd))
+(excludebox := DJMaxGui.Add("Checkbox", "x+120 left","Exclude Chart?")).OnEvent('Click', (*)=>FnKeyD())
 excludebox.Visible:=0, excludebox.Enabled:=0
 guistarsy 	:= DJMaxGui.Add("Text", "xs y+ w90 h30"," ")
 guistarso	:= DJMaxGui.Add("Text", "x+ yp wp hp"," ")
@@ -224,6 +243,8 @@ if not FileExist("SongList.db")
 GetSettings()
 PrepareDJMaxExclude()
 InitHotKeys()
+SpecialCase()
+
 
 ; Draw GUI
 UpdateSlider(0)
@@ -301,6 +322,7 @@ class Generate_Chart_Data
 			or (this.name="Here in the Moment ~Extended Mix~" and EvaluateSongGroup("BS",0)=0 and EvaluateSongGroup("T1",0)=0)
 			or (this.name="Karma ~Original Ver.~" and EvaluateSongGroup("V3",0)=0)
 			or (this.name="SON OF SUN ~Extended Mix~" and EvaluateSongGroup("CL",0)=0 and EvaluateSongGroup("BS",0)=0)
+			or (this.name="Megingjord" and Special[6]=0)
 				this.order:=-1
 		if !A_IsCompiled
 			debugfunc(A_Index, this.name, this.order, songgroup)
@@ -391,7 +413,6 @@ ChangeComboBox(boxno,*)
 ;Updates db in memory if different filtersettings are found.
 CheckFilter(update:=1)
 {
-	global songpacks
 	static enabledsongpacks:=0, enabledsubsongpacks:=0
 	if update=1
 		Statusbar.SetText("")
@@ -491,10 +512,11 @@ CreateCheckboxSubSP(dlccount, dlcb)
 }
 
 ;Returns hash and checks for collision
+;Note: Caching ntdll does not increase loading times, because it is already cached.
 ;mode: 0 - no collision check
 CreateID(str, mode:=0)
 {
-	static collisiontest:=Map()
+	static collisiontest:=Map() ;, hmod:=DllCall("Kernel32.dll\LoadLibrary", "Str", "Ntdll.dll")
 	crc_hash := Format("{:x}", DllCall("ntdll\RtlComputeCrc32", "UInt",0, "Str", str, "Int", strlen(str), "UInt"))
 	if collisiontest.Has(crc_hash) and mode=1
 	{
@@ -505,22 +527,27 @@ CreateID(str, mode:=0)
 	Return Format("{:08x}", "0x" . crc_hash)
 }
 
-ExcludeChart(songid, kmod, songd)
+
+ExcludeChart(songid, kmod, songd, key)
 {
 	if !djmaxexcludedben.value
 		Return 1
+	keyar := StrSplit(key," & ")
 	excludebox.Value := 1
 	pressedagain:=0
 	loop 3
 	{
-		if KeyWait("F4", "D T1")
-		{
-			pressedagain++
-		}
 		if globwparam
 			Send_WM_Copydata(";;" . kmod . "k;;;" . 4-A_Index, globwparam)
-		sleep 225
-		if pressedagain>1 or !excludebox.Value
+		sleep 150
+		if keyar.Has(1)
+		{
+			if keyar.length<2 and KeyWait(keyar[1], "D T1")
+				pressedagain++
+			else if keyar.Has(2) and KeyWait(keyar[1], "D T1") and KeyWait(keyar[2], "D T1")
+				pressedagain++
+		}
+		if pressedagain>0 or !excludebox.Value
 		{
 			if globwparam
 				Send_WM_Copydata(";;" . kmod . "k;;;✗", globwparam)
@@ -541,13 +568,16 @@ ExcludeChart(songid, kmod, songd)
 		Case "SC":
 			dshift:=0x3
 	}
+	; Safety measure against race-condition
+	if !djmaxexcludedben.value
+		Return 1
 	excludedb.Set(songid, (excludedb.Has(songid)?excludedb.Get(songid):0x0) + ((0x1<<dshift) << kshift))
 	excludebox.Enabled := 0
-	sleep 900
 	if globwparam
 		Send_WM_Copydata(";;;;;✓", globwparam)
 	SetFilter(0)
-
+	;Fixes Race-Condition with F4/F2.
+	sleep 1000
 }
 
 ; If Songtable is empty it will generate it
@@ -599,6 +629,8 @@ GenerateSongTable(*)
 			}
 
 		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], songid, A_Index))
+		;FileAppend(songid ":" song_data[1] "`n", "SongID.txt")
+			
 	}
 	if firstrun
 	{
@@ -651,6 +683,7 @@ ModifySettings(*)
 			subsongpacks[A_Index-maindlccount].Enabled:=dlc.value
 		}
 	}
+	SpecialCase()
 	CheckboxEnDis()
 	Checkfilter()
 }
@@ -877,6 +910,29 @@ SendFunc(key, repeat:=1)
 		Sleep delaykeyinput.value
 		Send "{" . key . " up}"
 		Sleep delaykeyinput.value
+	}
+}
+
+;Evaluate special unlock conditions
+SpecialCase()
+{
+	for song in special
+	{
+		switch song.Text
+		{
+			Case "Airwave ~Extended Mix~":
+				dlcpacks[sp.Get("CL")-4].Value and dlcpacks[sp.Get("T1")-4].Value?song.Value:=1:song.Value:=0
+			Case "Diomedes ~Extended Mix~":
+				dlcpacks[sp.Get("VL2")-4].Value?song.Value:=1:song.Value:=0	
+			Case "Flowering ~Original Ver.~":
+				dlcpacks[sp.Get("V1")-4].Value?song.Value:=1:song.Value:=0
+			Case "Here in the Moment ~Extended Mix~":
+				dlcpacks[sp.Get("BS")-4].Value and dlcpacks[sp.Get("T1")].Value?song.Value:=1:song.Value:=0
+			Case "Karma ~Original Ver.~":
+				dlcpacks[sp.Get("V3")-4].Value?song.Value:=1:song.Value:=0
+			Case "SON OF SUN ~Extended Mix~":
+				dlcpacks[sp.Get("CL")-4].Value and dlcpacks[sp.Get("BS")].Value?song.Value:=1:song.Value:=0
+		}	
 	}
 }
 

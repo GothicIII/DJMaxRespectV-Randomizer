@@ -23,6 +23,7 @@ GetSettings()
 	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "collmus"))
 	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "collvar"))
 	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "plipak"))
+	settings.push(iniread("DJMaxRandomizer.ini", "dlc_owned", "special"))
 	mindiff.value:=settings[1]
 	maxdiff.value:=settings[2]
 	loop parse settings[3]
@@ -66,6 +67,8 @@ GetSettings()
 		if !dlcpacks[maindlccount+A_Index].value
 			subsongpacks[A_Index].Enabled:=0
 	}
+	;Special case
+	special[6].Value:=settings[23]
 }
 
 ; Write settings to ini and close StreamDeck connection
@@ -117,6 +120,8 @@ SaveAndExit(*)
 		iniwrite(ArrToStr(dlcpacks,musicdlccount+1,varietydlccount),"DJMaxRandomizer.ini", "dlc_owned", "collvar")
 	if settings[cnt++]!=ArrToStr(dlcpacks,varietydlccount+1,dlcpacks.length)
 		iniwrite(ArrToStr(dlcpacks,varietydlccount+1,dlcpacks.length),"DJMaxRandomizer.ini", "dlc_owned", "plipak")
+	if settings[cnt++]!=Special[6].Value
+		iniwrite(Special[6].Value,"DJMaxRandomizer.ini", "dlc_owned", "special")
 	if djmaxexcludedben.Value
 	{	
 		filedb:=fileopen("DJMaxExcludeCharts.db","w")

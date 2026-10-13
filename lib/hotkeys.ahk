@@ -1,5 +1,6 @@
 EnDisHk(pass,md,k,fn,state)
 {
+	;Msgbox(inputlst[k])
 	if md>1 and k>1
 		Hotkey (pass?"~":"") modinputlst[md] " & " inputlst[k], fn, state
 	if md=1 and k>1
@@ -33,11 +34,11 @@ FnKeyC(*)
 		WinMaximize("ahk_exe DJMax Respect V.exe")
 }
 
-FnKeyD(*)
+FnKeyD(key:="")
 {
 	if !IsSet(songid)
 		Return
-	if excludebox.Enabled and djmaxexcludedben.Value and !ExcludeChart(songid, kmod, songd)
+	if excludebox.Enabled and djmaxexcludedben.Value and !ExcludeChart(songid, kmod, songd, key)
 		Statusbar.SetText("Current chart is now excluded and forever gone! :L")
 }
 

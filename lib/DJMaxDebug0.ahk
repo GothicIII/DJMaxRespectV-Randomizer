@@ -18,15 +18,15 @@
 ;//
 ;if !A_IsCompiled
 ;	Return
-cm_packs:= [ "CH", "CY", "DE", "EZ", "GC", "MD", "AR", "ON" ]
-cv_packs:= [ "GG", "ET", "FA", "GF", "MA", "NE", "TK", "BA", "DF" ]
+cm_packs:= [ "AR", "CH", "CY", "DE", "EZ", "GC", "MD", "ON" ]
+cv_packs:= [ "GG", "BA", "DF", "ET", "FA", "GF", "MA", "NE", "TK" ]
 pli_packs:=[ "PL1", "PL2", "PL3", "PL4" ]
 refresh:=1
 
 
 ; <DEBUG FUNCTIONS>
 Numpad3::Reload()
-; Main header for debug/recording functions
+; Main header for debug/recording functions, uses DJMaxSongNames.db to fetch names
 ; (ALT)
 !Numpad1::GetSongData("all")
 
@@ -112,27 +112,26 @@ class Generate_Chart_Data_debug
 AppendSongData(songobject, filename:="SongList_New.db"){
 	try 
 	{
-		FileAppend
-	(
-	songobject.Name ";"
-	songobject.sg ";"
-	songobject.fourk.nm ";"
-	songobject.fourk.hd ";"
-	songobject.fourk.mx ";"
-	songobject.fourk.sc ";"
-	songobject.fivek.nm ";"
-	songobject.fivek.hd ";"
-	songobject.fivek.mx ";"
-	songobject.fivek.sc ";"
-	songobject.sixk.nm ";"
-	songobject.sixk.hd ";"
-	songobject.sixk.mx ";"
-	songobject.sixk.sc ";"
-	songobject.eightk.nm ";"
-	songobject.eightk.hd ";"
-	songobject.eightk.mx ";"
-	songobject.eightk.sc "`n" 
-	), filename, "UTF-8"
+		FileAppend(
+			songobject.Name ";"
+			songobject.sg ";"
+			songobject.fourk.nm ";"
+			songobject.fourk.hd ";"
+			songobject.fourk.mx ";"
+			songobject.fourk.sc ";"
+			songobject.fivek.nm ";"
+			songobject.fivek.hd ";"
+			songobject.fivek.mx ";"
+			songobject.fivek.sc ";"
+			songobject.sixk.nm ";"
+			songobject.sixk.hd ";"
+			songobject.sixk.mx ";"
+			songobject.sixk.sc ";"
+			songobject.eightk.nm ";"
+			songobject.eightk.hd ";"
+			songobject.eightk.mx ";"
+			songobject.eightk.sc "`n" 
+			), filename, "UTF-8"
 	}
 	catch
 		AppendSongData(songobject)
@@ -560,7 +559,8 @@ GetSongGroupColor(){
 		WinActivate("ahk_exe DJMax Respect V.exe")
 	catch
 		Reload
-	MsgBox("DLC Color:" . PixelGetColor(110,292)
+	MsgBox(
+		"DLC Color:" . PixelGetColor(110,292)
 		"`nDLC Great Banner Color:" . PixelGetColor(1008,200)
 		"`nButton Color NM:" . PixelGetColor(133,667)
 		"`nButton Color HD:" . PixelGetColor(293,667)
