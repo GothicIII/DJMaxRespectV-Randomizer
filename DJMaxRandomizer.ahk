@@ -232,7 +232,6 @@ guistarsy 	:= DJMaxGui.Add("Text", "xs y+ w90 h30"," ")
 guistarso	:= DJMaxGui.Add("Text", "x+ yp wp hp"," ")
 guistarsr	:= DJMaxGui.Add("Text", "x+ yp wp hp"," ")
 statusbar := DJMaxGui.Add("StatusBar",, "")
-statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 if not FileExist("SongList.db")
 {
 	if (MsgBox("SongList.db not found!`nVisit the github page to download the current one (OK).`nAlternatively you could generate a SongList.db using GetSongData() from DJMaxDetection.h!","Critical error! SongList.db missing!",0x31)="OK")
@@ -242,9 +241,9 @@ if not FileExist("SongList.db")
 
 ; Initialization
 GetSettings()
-SpecialCase()
 PrepareDJMaxExclude()
 InitHotKeys()
+
 
 ; Draw GUI
 UpdateSlider(0)
@@ -260,6 +259,7 @@ DJMaxGuiStat.SetFont("q5 s11","Consolas")
 (filterak := DJMaxGuiStat.Add("Button", "section x+ yp wp","ALLK")).OnEvent('Click', (*)=>SetFilter("ak"))
 filterak.Opt("+Default")
 SetFilter("ak")
+statusbar.SetText("Welcome! Select your Options and Press 'Go!' or F2 :)")
 if A_Args.length>0
 	Receive_Connection_Data(A_Args[1])
 
@@ -407,7 +407,7 @@ CheckFilter(update:=1)
 	static enabledsongpacks:=0, enabledsubsongpacks:=0
 	if update=1
 		Statusbar.SetText("")
-	if enabledsongpacks!=ArrToStr(songpacks) or enabledsubsongpacks!=ArrToStr(subsongpacks) or excludebox.Value
+	if enabledsongpacks!=ArrToStr(songpacks) or enabledsubsongpacks!=ArrToStr(subsongpacks) or excludebox.Value or !SpecialCase()
 	{
 		enabledsongpacks:=ArrToStr(songpacks)
 		enabledsubsongpacks:=ArrToStr(subsongpacks)
@@ -586,6 +586,18 @@ GenerateSongTable(*)
 		if song_data.length=0
 			break
 		sd_index:=3
+		; Special unlock conditions. Throws away entries since those songs are hidden by default
+		if (song_data[1]="Airwave ~Extended Mix~" and Special[1].Value=0)
+			or (song_data[1]="Diomedes ~Extended Mix~" and Special[2].Value=0)
+			or (song_data[1]="Flowering ~Original Ver.~" and Special[3].Value=0)
+			or (song_data[1]="Here in the Moment ~Extended Mix~" and Special[4].Value=0)
+			or (song_data[1]="Karma ~Original Ver.~" and Special[5].Value=0)
+			or (song_data[1]="Megingjord" and Special[6].Value=0)
+			or (song_data[1]="SON OF SUN ~Extended Mix~" and Special[7].Value=0)
+		{
+			A_Index--
+			continue
+		}
 		for k in [4,5,6,8]
 			for d in ["NM","HD","MX","SC"]
 			{
@@ -618,29 +630,14 @@ GenerateSongTable(*)
 					}
 				sd_index++
 			}
-		; Special unlock conditions. Throws away entries since those songs are hidden by default
-		if (song_data[1]="Airwave ~Extended Mix~" and Special[1].Value=0)
-			or (song_data[1]="Diomedes ~Extended Mix~" and Special[2].Value=0)
-			or (song_data[1]="Flowering ~Original Ver.~" and Special[3].Value=0)
-			or (song_data[1]="Here in the Moment ~Extended Mix~" and Special[4].Value=0)
-			or (song_data[1]="Karma ~Original Ver.~" and Special[5].Value=0)
-			or (song_data[1]="Megingjord" and Special[6].Value=0)
-			or (song_data[1]="SON OF SUN ~Extended Mix~" and Special[7].Value=0)
-		{
-			A_Index--
-			continue
-		}
 		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], songid, A_Index))
 		;FileAppend(songid ":" song_data[1] "`n", "SongID.txt")
-			
 	}
-	if firstrun
-	{
-		charts_old := charts
-		chartsmiss_old := chartsmiss
-	}
+	; Need to be updated due to SpecialCase
+	charts_old := charts
+	chartsmiss_old := chartsmiss
+	statusbar.SetText("Songtable updated successfully! Table has " charts.ak.NM.sum+charts.ak.HD.sum+charts.ak.MX.sum+charts.ak.SC.sum " charts!")
 	firstrun:=0
-	
 }
 
 ;Called when Edit menu is closed. Enables/Disables checkboxes
@@ -685,7 +682,6 @@ ModifySettings(*)
 			subsongpacks[A_Index-maindlccount].Enabled:=dlc.value
 		}
 	}
-	SpecialCase()
 	CheckboxEnDis()
 	Checkfilter()
 }
@@ -917,6 +913,7 @@ SendFunc(key, repeat:=1)
 ;Evaluate special unlock conditions
 SpecialCase()
 {
+	static odiff:=""
 	for song in special
 	{
 		switch song.Text
@@ -933,8 +930,16 @@ SpecialCase()
 				dlcpacks[sp.Get("V3")-4].Value?song.Value:=1:song.Value:=0
 			Case "SON OF SUN ~Extended Mix~":
 				dlcpacks[sp.Get("CL")-4].Value and dlcpacks[sp.Get("BS")].Value?song.Value:=1:song.Value:=0
-		}	
+		}
+		diff .= song.value
 	}
+	if diff!=odiff and odiff
+	{	
+		odiff:=diff
+		Return 1
+	}
+	odiff:=diff
+	Return 0
 }
 
 ToggleAllSongPacks(*)
