@@ -627,7 +627,6 @@ GenerateSongTable(*)
 			or (song_data[1]="Megingjord" and Special[6].Value=0)
 			or (song_data[1]="SON OF SUN ~Extended Mix~" and Special[7].Value=0)
 		{
-			Msgbox(song_data[1] " skipped")
 			A_Index--
 			continue
 		}
