@@ -17,8 +17,9 @@ try
 		Filecopy("DJMaxExcludeCharts.db","Exclude_Archive\DJMaxExcludeCharts_" A_YYYY "_" A_MM "_" A_DD "_" A_Hour "_" A_Min ".db",1)
 ; Variable initialization
 #NoTrayIcon
+#SingleInstance Force
 OnMessage(0x5555,Receive_Connection_Data)
-Version:="3.0.261013"
+Version:="3.0.261014"
 songpacks:=[], subsongpacks:=[], kmode:=[], diffmode:=[], stars:=[], dlcpacks:=[], special:=[], settings:=[], songsdbmem:=[], globwparam:=""
 
 ; Create new settings file if it is missing
@@ -241,10 +242,9 @@ if not FileExist("SongList.db")
 
 ; Initialization
 GetSettings()
+SpecialCase()
 PrepareDJMaxExclude()
 InitHotKeys()
-SpecialCase()
-
 
 ; Draw GUI
 UpdateSlider(0)
@@ -315,15 +315,6 @@ class Generate_Chart_Data
 			else
 				this.order	:= ++alphaarr[ord(strupper(this.name))-64]
 				;	Msgbox("O:" strupper(this.name))
-		; Further unlock conditions for very specific songs
-		if (this.name="Airwave ~Extended Mix~" and EvaluateSongGroup("CL",0)=0 and EvaluateSongGroup("T1",0)=0)
-			or (this.name="Diomedes ~Extended Mix~" and EvaluateSongGroup("VL2",0)=0)
-			or (this.name="Flowering ~Original Ver.~" and EvaluateSongGroup("V1",0)=0)
-			or (this.name="Here in the Moment ~Extended Mix~" and EvaluateSongGroup("BS",0)=0 and EvaluateSongGroup("T1",0)=0)
-			or (this.name="Karma ~Original Ver.~" and EvaluateSongGroup("V3",0)=0)
-			or (this.name="SON OF SUN ~Extended Mix~" and EvaluateSongGroup("CL",0)=0 and EvaluateSongGroup("BS",0)=0)
-			or (this.name="Megingjord" and Special[6]=0)
-				this.order:=-1
 		if !A_IsCompiled
 			debugfunc(A_Index, this.name, this.order, songgroup)
 		this.4k	:= {}
@@ -627,7 +618,19 @@ GenerateSongTable(*)
 					}
 				sd_index++
 			}
-
+		; Special unlock conditions. Throws away entries since those songs are hidden by default
+		if (song_data[1]="Airwave ~Extended Mix~" and Special[1].Value=0)
+			or (song_data[1]="Diomedes ~Extended Mix~" and Special[2].Value=0)
+			or (song_data[1]="Flowering ~Original Ver.~" and Special[3].Value=0)
+			or (song_data[1]="Here in the Moment ~Extended Mix~" and Special[4].Value=0)
+			or (song_data[1]="Karma ~Original Ver.~" and Special[5].Value=0)
+			or (song_data[1]="Megingjord" and Special[6].Value=0)
+			or (song_data[1]="SON OF SUN ~Extended Mix~" and Special[7].Value=0)
+		{
+			Msgbox(song_data[1] " skipped")
+			A_Index--
+			continue
+		}
 		songsdbmem.push(Generate_Chart_Data(song_data[1],song_data[2], [song_data[3],song_data[4],song_data[5],song_data[6]], [song_data[7],song_data[8],song_data[9],song_data[10]], [song_data[11],song_data[12],song_data[13],song_data[14]], [song_data[15],song_data[16],song_data[17],song_data[18]], songid, A_Index))
 		;FileAppend(songid ":" song_data[1] "`n", "SongID.txt")
 			
@@ -708,7 +711,6 @@ PrepareDJMaxExclude(*)
 		}
 	excludebox.Enabled:=djmaxexcludedben.value
 	progressioncb.Enabled:=djmaxexcludedben.value
-	GenerateSongTable()
 }
 
 RetrieveChartFromExcludeDb(songid, kmod, songd, songn:=0)
