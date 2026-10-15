@@ -10,10 +10,7 @@ Close_Connection(wParam, msg:=1)
 Receive_Connection_Data(wParam,*)
 {
 	if !sdsupport.value
-	{
-		Close_Connection(wParam,0)
 		Return
-	}
 	statusbar.SetText("Connection to StreamDeck established!")
 	if globwparam and globwparam!=wParam
 	{
@@ -36,6 +33,7 @@ Send_WM_Copydata(str, phwnd)
 		if !A_IsAdmin and tried=0
 		{
 			Msgbox("Sorry, we need admin rights to connect to StreamDeck AHK API.`nRestarting now.")
+			SaveAndExit(0)
 			if A_IsCompiled
 				Run ('*RunAs "' A_ScriptDir . "\DJMaxRandomizer.exe" '"' " /restart " phwnd)
 			else

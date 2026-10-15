@@ -39,7 +39,7 @@ FnKeyD(key:="")
 	if !IsSet(songid)
 		Return
 	if excludebox.Enabled and djmaxexcludedben.Value and !ExcludeChart(songid, kmod, songd, key)
-		Statusbar.SetText("Current chart is now excluded and forever gone! :L")
+		Statusbar.SetText(statusexclude[random(1,statusexclude.length)])
 }
 
 ; Initially set hotkeys
@@ -61,25 +61,12 @@ SetHk(key,fn,mode:=0)
 	static hkhistory:=[101,102,103,104,0], lst:=["keyroll","keyreroll","keytgl","keyexclude"]	
 	lnum:=Ord(SubStr(fn.name,6,1))-64
 	if mode=1
-	{
-		hkhistory[lnum]:=key
-		md:=key//100, k:=Mod(key,100)
-		hkhistory[hkhistory.length]:=passthrough.Value
-	}
+		hkhistory[lnum]:=key, md:=key//100, k:=Mod(key,100), hkhistory[hkhistory.length]:=passthrough.Value
 	else
-	{
 		if key>=100
-		{
-			md:=key//100
-			k:=Mod(hkhistory[lnum],100)
-		}
+			md:=key//100, k:=Mod(hkhistory[lnum],100)
 		else if key
-		{
-			md:=hkhistory[lnum]//100
-			k:=Mod(key,100)
-		}
-
-	}
+			md:=hkhistory[lnum]//100, k:=Mod(key,100)
 	; Checking key validity and if a duplicate is found, set it back to what it was (hkhistory)
 	for l in lst
 	{
@@ -96,13 +83,10 @@ SetHk(key,fn,mode:=0)
 		}
 	}
 	;Disable old hotkey
-	md_old:=hkhistory[lnum]//100
-	k_old:=Mod(hkhistory[lnum],100)
+	md_old:=hkhistory[lnum]//100, k_old:=Mod(hkhistory[lnum],100)
 	EnDisHk(hkhistory[hkhistory.length],md_old,k_old,fn,"Off")
 	;Enable new Hotkey
-	%lst[lnum] "mod"%.Value:=md
-	%lst[lnum]%.Value:=k
+	%lst[lnum] "mod"%.Value:=md, %lst[lnum]%.Value:=k
 	EnDisHk(passthrough.Value,md,k,fn,"On")
-	hkhistory[lnum]:=md*100+k
-	hkhistory[hkhistory.length]:=passthrough.Value
+	hkhistory[lnum]:=md*100+k, hkhistory[hkhistory.length]:=passthrough.Value
 }

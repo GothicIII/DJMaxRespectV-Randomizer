@@ -67,12 +67,12 @@ GetSettings()
 		if !dlcpacks[maindlccount+A_Index].value
 			subsongpacks[A_Index].Enabled:=0
 	}
-	;Special case
+	;Special case for Megingjord
 	special[6].Value:=settings[23]
 }
 
 ; Write settings to ini and close StreamDeck connection
-SaveAndExit(*)
+SaveAndExit(quit:=1,*)
 {
 	cnt:=1
 	if settings[cnt++]!=mindiff.value
@@ -141,21 +141,22 @@ SaveAndExit(*)
 				skip++
 		filedb.close()
 	}
-	if globwparam
-		Close_Connection(globwparam)
-	ExitApp
+	if quit
+	{
+		if globwparam
+			Close_Connection(globwparam)
+		ExitApp
+	}
 }
 
 ; Settings has to be updated for one position only else multiple changes will be ignored. 
 UpdateSettings(position,curset)
 {
 	loop parse curset
-	{
 		if position=A_Index
 			newsettings .= !A_Loopfield
 		else
 			newsettings .= A_Loopfield
-	}
 	;Return newsettings
 	;Msgbox(curset "`n" newsettings)
 	return newsettings

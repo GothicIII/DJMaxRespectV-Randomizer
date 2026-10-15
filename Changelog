@@ -9,9 +9,11 @@ DJMax Randomizer changelog
 	- Fix: Rendering issues fixed in Stats. Now should correctly update values.
 	- New: Due to Megingjord being a hidden song there is now a checkbox for it
 		   alongside other songs with special unlock conditions under [DLC].
+	- Minor stuff added
 		   
-- Improved startup time
+- Improved startup time and general performance by reducing function calls.
 - Special cases now handled differently and are discarded when not enabled.
+- Fix: When toggling Options it messed up the progression setting.
 
 v2.9
 ToDo:
